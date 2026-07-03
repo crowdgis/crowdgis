@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { parseClarification } from '../shared/requests.js'
+import { renderEmail } from './_lib/email-template.js'
 import { appBaseUrl, webhookSecret } from './_lib/env.js'
 import { error, json } from './_lib/http.js'
 import { emailKey, kv, openSetKey } from './_lib/kv.js'
@@ -67,20 +68,19 @@ export async function POST(request: Request): Promise<Response> {
   if (event === 'issue_comment' && body.action === 'created' && body.comment) {
     const clarification = parseClarification(body.comment.body)
     if (clarification && email) {
-      const questions = clarification.questions
-        .map((q) => `– ${q.text}`)
-        .join('\n')
-      await sendMail(
-        email,
-        `Rückfrage zu "${issue.title}"`,
-        [
-          'Dein Feature-Wunsch hat eine Rückfrage:',
-          '',
-          questions,
-          '',
-          `Antworte hier: ${link}`,
-        ].join('\n'),
-      )
+      const questions = clarification.questions.map((q) => `• ${q.text}`)
+      const mail = renderEmail({
+        heading: `Rückfrage zu „${issue.title}“`,
+        paragraphs: [
+          'Damit wir dein Feature genau richtig umsetzen, brauchen wir noch ein paar Angaben von dir:',
+          questions.join('\n'),
+          'Öffne dein Feature auf dem Board und beantworte die Fragen dort mit einem Klick.',
+        ],
+        button: { label: 'Rückfrage beantworten', url: link },
+        reason:
+          'Du erhältst diese E-Mail, weil dein CrowdGIS-Feature-Wunsch eine Rückfrage hat.',
+      })
+      await sendMail(email, `Rückfrage zu „${issue.title}“`, mail.text, mail.html)
     }
     return json({ ok: true })
   }
@@ -89,11 +89,13 @@ export async function POST(request: Request): Promise<Response> {
   if (event === 'issues' && body.action === 'labeled' && body.label) {
     const notify = NOTIFY_LABELS[body.label.name]
     if (notify && email) {
-      await sendMail(
-        email,
-        `${notify.subject}: "${issue.title}"`,
-        [notify.text, '', `Details: ${link}`].join('\n'),
-      )
+      const mail = renderEmail({
+        heading: notify.subject,
+        paragraphs: [notify.text],
+        button: { label: 'Zum Feature-Board', url: link },
+        reason: `Du erhältst diese E-Mail, weil sich der Status deines Feature-Wunsches „${issue.title}“ geändert hat.`,
+      })
+      await sendMail(email, `${notify.subject}: „${issue.title}“`, mail.text, mail.html)
     }
     // Terminal states free up the student's open-request slot.
     if (

@@ -27,3 +27,5 @@ dist-ssr
 .env*
 .webhook-secret.txt
 .agentmail-key.txt
+.smtp-pass.txt
+.smtp-verify.mjs

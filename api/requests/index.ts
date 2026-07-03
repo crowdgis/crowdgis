@@ -7,6 +7,7 @@ import {
   courseCode,
   maxOpenPerStudent,
 } from '../_lib/env.js'
+import { renderEmail } from '../_lib/email-template.js'
 import { listFeatureRequests } from '../_lib/github.js'
 import { error, json } from '../_lib/http.js'
 import { kv, openSetKey, storePending, upvoteKey } from '../_lib/kv.js'
@@ -93,19 +94,21 @@ export async function POST(request: Request): Promise<Response> {
   })
 
   const confirmUrl = `${appBaseUrl()}/api/confirm?token=${token}`
+  const mail = renderEmail({
+    heading: 'Bestätige deinen Feature-Wunsch',
+    paragraphs: [
+      `Hallo ${pseudonym}, danke für deine Einreichung.`,
+      `Du hast den Feature-Wunsch „${title}“ eingereicht. Damit er auf dem CrowdGIS-Board erscheint und bearbeitet wird, bestätige bitte kurz, dass die Einreichung von dir stammt.`,
+      'Der Bestätigungslink ist 3 Tage gültig. Wenn die Einreichung nicht von dir war, kannst du diese E-Mail ignorieren.',
+    ],
+    button: { label: 'Feature-Wunsch bestätigen', url: confirmUrl },
+    reason: `Du erhältst diese E-Mail, weil auf crowdgis.ch ein Feature-Wunsch mit deiner Adresse eingereicht wurde.`,
+  })
   await sendMail(
     email,
-    'Bitte bestätige deinen Feature-Wunsch',
-    [
-      `Hallo ${pseudonym}`,
-      '',
-      `Du hast den Feature-Wunsch "${title}" eingereicht.`,
-      'Bitte bestätige ihn mit diesem Link (gültig 3 Tage):',
-      '',
-      confirmUrl,
-      '',
-      'Wenn das nicht du warst, ignoriere diese Mail einfach.',
-    ].join('\n'),
+    'Bestätige deinen Feature-Wunsch',
+    mail.text,
+    mail.html,
   )
 
   return json({ ok: true, message: 'Bestätigungsmail verschickt.' }, 202)
