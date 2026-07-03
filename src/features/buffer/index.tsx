@@ -1,8 +1,22 @@
 import { useState } from 'react'
+import type { FeatureCollection } from 'geojson'
 import { useLayerStore } from '../../state/layerStore'
 import { vectorBounds } from '../../lib/geo'
 import type { FeatureModule } from '../types'
 import { bufferFeatureCollection } from './buffer'
+
+/** Download a GeoJSON feature collection as a file. */
+function downloadGeojson(geojson: FeatureCollection, filename: string) {
+  const blob = new Blob([JSON.stringify(geojson, null, 2)], {
+    type: 'application/geo+json',
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 /** Sidebar section: create a buffered copy of a layer as a new layer. */
 function BufferPanel() {
@@ -14,6 +28,7 @@ function BufferPanel() {
   const [layerId, setLayerId] = useState('')
   const [distance, setDistance] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<FeatureCollection | null>(null)
 
   const selectedLayer = vectorLayers.find((l) => l.id === layerId)
 
@@ -36,8 +51,10 @@ function BufferPanel() {
         source: { kind: 'vector', geojson },
       })
       if (bounds) requestZoom(bounds)
+      setResult(geojson)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Puffer konnte nicht erzeugt werden.')
+      setResult(null)
     }
   }
 
@@ -89,6 +106,15 @@ function BufferPanel() {
             <p role="alert" className="text-xs text-signal">
               {error}
             </p>
+          )}
+          {result && (
+            <button
+              type="button"
+              onClick={() => downloadGeojson(result, 'puffer.geojson')}
+              className="w-full rounded-[3px] border border-ink px-2 py-1.5 text-xs font-medium text-ink hover:bg-ink hover:text-white"
+            >
+              Puffer als GeoJSON exportieren
+            </button>
           )}
         </form>
       )}
