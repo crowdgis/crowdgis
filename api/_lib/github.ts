@@ -31,6 +31,8 @@ export interface GhIssue {
   state: 'open' | 'closed'
   created_at: string
   labels: GhLabel[]
+  /** Present when the "issue" is actually a pull request. */
+  pull_request?: unknown
 }
 
 export interface GhComment {
@@ -56,9 +58,11 @@ export async function createIssue(
 }
 
 export async function listFeatureRequests(): Promise<GhIssue[]> {
-  return gh<GhIssue[]>(
+  const items = await gh<GhIssue[]>(
     `/repos/${githubRepo()}/issues?labels=feature-request&state=all&per_page=100&sort=created&direction=desc`,
   )
+  // The issues API also returns pull requests (agent PRs carry the label).
+  return items.filter((i) => !i.pull_request)
 }
 
 export async function getIssue(number: number): Promise<GhIssue> {

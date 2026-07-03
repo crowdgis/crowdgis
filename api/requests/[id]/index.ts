@@ -15,9 +15,9 @@ export async function GET(
   }
 
   const issue = await getIssue(number)
-  const isFeatureRequest = issue.labels.some(
-    (l) => l.name === 'feature-request',
-  )
+  const isFeatureRequest =
+    !issue.pull_request &&
+    issue.labels.some((l) => l.name === 'feature-request')
   if (!isFeatureRequest) return error('Nicht gefunden.', 404)
 
   const ghComments = await listComments(number)
