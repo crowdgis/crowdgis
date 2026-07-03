@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { parseClarification } from '../shared/requests.js'
 import { renderEmail } from './_lib/email-template.js'
 import { appBaseUrl, webhookSecret } from './_lib/env.js'
+import { listComments } from './_lib/github.js'
 import { error, json } from './_lib/http.js'
 import { emailKey, kv, openSetKey } from './_lib/kv.js'
 import { sendMail } from './_lib/mail.js'
@@ -30,23 +31,73 @@ interface WebhookBody {
   label?: { name: string }
 }
 
-const NOTIFY_LABELS: Record<string, { subject: string; text: string }> = {
+interface StatusMail {
+  subject: string
+  paragraphs: string[]
+  buttonLabel: string
+  /** Quote the agent's latest issue comment (the reasoning) in the mail. */
+  includeAgentComment?: boolean
+}
+
+const NOTIFY_LABELS: Record<string, StatusMail> = {
   bereit: {
     subject: 'Dein Feature-Wunsch ist bereit zur Umsetzung',
-    text: 'Deine Anforderung ist klar genug und wartet auf die Freigabe.',
+    paragraphs: [
+      'Gute Nachricht: Deine Anforderung ist klar und vollständig beschrieben.',
+      'Sie wartet jetzt auf die Freigabe durch das CrowdGIS-Team. Danach implementiert der KI-Agent dein Feature automatisch — du bekommst eine Nachricht, sobald es so weit ist.',
+    ],
+    buttonLabel: 'Zum Feature-Board',
   },
   'in-arbeit': {
-    subject: 'Dein Feature wird umgesetzt',
-    text: 'Der Agent implementiert dein Feature gerade.',
+    subject: 'Dein Feature wird jetzt umgesetzt',
+    paragraphs: [
+      'Dein Feature-Wunsch wurde freigegeben — der KI-Agent implementiert ihn gerade.',
+      'Sobald das Feature getestet und live ist, melden wir uns wieder.',
+    ],
+    buttonLabel: 'Status verfolgen',
   },
   live: {
     subject: 'Dein Feature ist live! 🎉',
-    text: 'Dein Feature wurde umgesetzt und ist jetzt in CrowdGIS verfügbar.',
+    paragraphs: [
+      'Geschafft: Dein Feature wurde umgesetzt, hat alle Tests bestanden und ist ab sofort für alle in CrowdGIS verfügbar.',
+      'Probier es gleich aus — und danke, dass du CrowdGIS mitgestaltest!',
+    ],
+    buttonLabel: 'Feature ansehen',
   },
   verworfen: {
-    subject: 'Dein Feature-Wunsch wurde verworfen',
-    text: 'Deine Anfrage wurde geschlossen (keine Antwort auf die Rückfrage oder nicht umsetzbar). Du kannst jederzeit einen neuen, präziseren Wunsch einreichen.',
+    subject: 'Dein Feature-Wunsch kann leider nicht umgesetzt werden',
+    paragraphs: [
+      'Wir haben deinen Wunsch geprüft, können ihn aber nicht umsetzen. Die Begründung findest du unten.',
+    ],
+    buttonLabel: 'Details ansehen',
+    includeAgentComment: true,
   },
+}
+
+const ENCOURAGEMENT =
+  'Lass dich davon nicht entmutigen: Formuliere gerne einen neuen, präziseren Wunsch. Genau dieses Präzisieren ist Teil dessen, was CrowdGIS vermitteln möchte.'
+
+/**
+ * Latest agent comment on the issue (the human-readable reasoning),
+ * with any machine-readable JSON blocks stripped. Null when unavailable.
+ */
+async function latestAgentComment(issueNumber: number): Promise<string | null> {
+  try {
+    const comments = await listComments(issueNumber)
+    for (const comment of [...comments].reverse()) {
+      if (comment.body.startsWith('Antwort:')) continue // student replies
+      const cleaned = comment.body
+        .replace(/```json[\s\S]*?```/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+      if (cleaned.length > 0) {
+        return cleaned.length > 700 ? `${cleaned.slice(0, 700)} …` : cleaned
+      }
+    }
+  } catch {
+    // Mail still goes out, just without the quote.
+  }
+  return null
 }
 
 /** POST /api/github-webhook — notify students about issue events. */
@@ -89,10 +140,16 @@ export async function POST(request: Request): Promise<Response> {
   if (event === 'issues' && body.action === 'labeled' && body.label) {
     const notify = NOTIFY_LABELS[body.label.name]
     if (notify && email) {
+      const paragraphs = [...notify.paragraphs]
+      if (notify.includeAgentComment) {
+        const reason = await latestAgentComment(issue.number)
+        if (reason) paragraphs.push(reason)
+        paragraphs.push(ENCOURAGEMENT)
+      }
       const mail = renderEmail({
         heading: notify.subject,
-        paragraphs: [notify.text],
-        button: { label: 'Zum Feature-Board', url: link },
+        paragraphs,
+        button: { label: notify.buttonLabel, url: link },
         reason: `Du erhältst diese E-Mail, weil sich der Status deines Feature-Wunsches „${issue.title}“ geändert hat.`,
       })
       await sendMail(email, `${notify.subject}: „${issue.title}“`, mail.text, mail.html)

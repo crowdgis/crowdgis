@@ -58,7 +58,7 @@ export function renderEmail(content: EmailContent): {
   const paragraphsHtml = content.paragraphs
     .map(
       (p) =>
-        `<tr><td style="padding:0 0 14px;color:#111111;font-size:15px;line-height:1.55;">${escapeHtml(p)}</td></tr>`,
+        `<tr><td style="padding:0 0 14px;color:#111111;font-size:15px;line-height:1.55;">${escapeHtml(p).replace(/\n/g, '<br>')}</td></tr>`,
     )
     .join('')
 
