@@ -9,5 +9,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    server: {
+      deps: {
+        // Ships directory-style ESM imports Node cannot resolve natively.
+        inline: ['georaster-layer-for-leaflet'],
+      },
+    },
   },
 })

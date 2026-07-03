@@ -28,4 +28,9 @@ export interface FeatureModule {
    * Use for compact live information (e.g. coordinates).
    */
   StatusBarItem?: ComponentType
+  /**
+   * Rendered as a section in the left sidebar.
+   * Use for persistent panels (layer list, data import, …).
+   */
+  SidebarPanel?: ComponentType
 }

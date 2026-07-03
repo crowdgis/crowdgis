@@ -20,19 +20,27 @@ function App() {
         </p>
       </header>
 
-      <main className="relative min-h-0 flex-1">
-        <MapView />
-        {/* Floating toolbar for feature controls, above the Leaflet panes */}
-        <div className="pointer-events-none absolute top-3 right-3 z-[1000] flex flex-col items-end gap-2">
+      <div className="flex min-h-0 flex-1">
+        <aside className="flex w-72 shrink-0 flex-col gap-5 overflow-y-auto border-r border-hairline bg-sheet p-3">
           {features.map((f) =>
-            f.ToolbarItem ? (
-              <div key={f.id} className="pointer-events-auto">
-                <f.ToolbarItem />
-              </div>
-            ) : null,
+            f.SidebarPanel ? <f.SidebarPanel key={f.id} /> : null,
           )}
-        </div>
-      </main>
+        </aside>
+
+        <main className="relative min-w-0 flex-1">
+          <MapView />
+          {/* Floating toolbar for feature controls, above the Leaflet panes */}
+          <div className="pointer-events-none absolute top-3 right-3 z-[1000] flex flex-col items-end gap-2">
+            {features.map((f) =>
+              f.ToolbarItem ? (
+                <div key={f.id} className="pointer-events-auto">
+                  <f.ToolbarItem />
+                </div>
+              ) : null,
+            )}
+          </div>
+        </main>
+      </div>
 
       <footer className="flex h-8 items-center gap-5 border-t border-hairline bg-sheet px-4 text-xs">
         {features.map((f) =>

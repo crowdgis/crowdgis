@@ -1,6 +1,8 @@
 import type { FeatureModule } from './types'
 import basemaps from './basemaps'
 import coordinates from './coordinates'
+import dataImport from './data-import'
+import layerManager from './layer-manager'
 
 /**
  * Central feature registry.
@@ -8,5 +10,11 @@ import coordinates from './coordinates'
  * To add a new feature: create `src/features/<id>/` with an `index.ts(x)`
  * that default-exports a `FeatureModule`, then import and append it here.
  * This is the ONLY core file a new feature is allowed to touch.
+ * Order defines rendering order of sidebar panels and toolbar items.
  */
-export const features: FeatureModule[] = [basemaps, coordinates]
+export const features: FeatureModule[] = [
+  dataImport,
+  layerManager,
+  basemaps,
+  coordinates,
+]
