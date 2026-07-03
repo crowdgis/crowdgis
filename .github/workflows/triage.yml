@@ -66,3 +66,18 @@ jobs:
           claude_args: |
             --max-turns 30
             --allowedTools "Read,Grep,Glob,Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh issue close:*)"
+
+      - name: Verify triage outcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A successful triage always removes "eingereicht". If it is still
+          # there, the agent ended without acting — fail loudly so the run
+          # is visible and can simply be re-run.
+          LABELS=$(gh issue view "${{ github.event.issue.number }}" \
+            --repo "$GITHUB_REPOSITORY" --json labels -q '[.labels[].name] | join(",")')
+          echo "Labels after triage: $LABELS"
+          if [[ ",$LABELS," == *",eingereicht,"* ]]; then
+            echo "::error::Triage finished without an outcome (issue still 'eingereicht'). Re-run this workflow."
+            exit 1
+          fi
