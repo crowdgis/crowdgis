@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { FeatureRequestSummary, SubmitPayload } from '../../shared/requests.js'
 import { statusFromLabels } from '../../shared/requests.js'
 import {
-  allowedMailSuffix,
+  allowedMailSuffixes,
   appBaseUrl,
   courseCode,
   maxOpenPerStudent,
@@ -59,9 +59,13 @@ export async function POST(request: Request): Promise<Response> {
   if (pseudonym.length < 2 || pseudonym.length > 30) {
     return error('Bitte gib ein Kürzel mit 2–30 Zeichen an.', 400)
   }
-  if (!email.endsWith(`@${allowedMailSuffix()}`) && !email.endsWith(`.${allowedMailSuffix()}`)) {
+  const suffixes = allowedMailSuffixes()
+  const emailAllowed = suffixes.some(
+    (s) => email.endsWith(`@${s}`) || email.endsWith(`.${s}`),
+  )
+  if (!emailAllowed) {
     return error(
-      `Bitte verwende deine Hochschul-Mailadresse (…${allowedMailSuffix()}).`,
+      `Bitte verwende deine Hochschul-Mailadresse (…${suffixes.join(' oder …')}).`,
       400,
     )
   }

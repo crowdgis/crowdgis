@@ -15,9 +15,12 @@ export const githubToken = () => requireEnv('CROWDGIS_GITHUB_TOKEN')
 export const courseCode = () => requireEnv('CROWDGIS_COURSE_CODE')
 export const appBaseUrl = () => requireEnv('CROWDGIS_APP_BASE_URL')
 export const webhookSecret = () => requireEnv('CROWDGIS_WEBHOOK_SECRET')
-/** Mail suffix students must use, e.g. "zhaw.ch". */
-export const allowedMailSuffix = () =>
+/** Mail suffixes students may use, comma-separated, e.g. "zhaw.ch,gmail.com". */
+export const allowedMailSuffixes = () =>
   optionalEnv('CROWDGIS_MAIL_SUFFIX', 'zhaw.ch')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => s.length > 0)
 /** Maximum simultaneously open requests per student. */
 export const maxOpenPerStudent = () =>
   Number(optionalEnv('CROWDGIS_MAX_OPEN_PER_STUDENT', '3'))
