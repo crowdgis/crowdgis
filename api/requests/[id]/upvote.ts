@@ -1,4 +1,4 @@
-import { error, json } from '../../_lib/http.js'
+import { error, json, requestIdFromUrl } from '../../_lib/http.js'
 import { kv, upvoteKey, upvoterKey } from '../../_lib/kv.js'
 
 interface UpvotePayload {
@@ -7,12 +7,9 @@ interface UpvotePayload {
 }
 
 /** POST /api/requests/:id/upvote */
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } },
-): Promise<Response> {
-  const number = Number(params.id)
-  if (!Number.isInteger(number) || number <= 0) {
+export async function POST(request: Request): Promise<Response> {
+  const number = requestIdFromUrl(request.url)
+  if (number === null) {
     return error('Ungültige Nummer.', 400)
   }
 

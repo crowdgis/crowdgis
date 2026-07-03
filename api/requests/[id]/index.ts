@@ -1,16 +1,13 @@
 import type { FeatureRequestDetail, RequestComment } from '../../../shared/requests.js'
 import { parseClarification, statusFromLabels } from '../../../shared/requests.js'
 import { getIssue, listComments } from '../../_lib/github.js'
-import { error, json } from '../../_lib/http.js'
+import { error, json, requestIdFromUrl } from '../../_lib/http.js'
 import { kv, upvoteKey } from '../../_lib/kv.js'
 
 /** GET /api/requests/:id — request detail incl. conversation. */
-export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } },
-): Promise<Response> {
-  const number = Number(params.id)
-  if (!Number.isInteger(number) || number <= 0) {
+export async function GET(request: Request): Promise<Response> {
+  const number = requestIdFromUrl(request.url)
+  if (number === null) {
     return error('Ungültige Nummer.', 400)
   }
 
