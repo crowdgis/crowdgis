@@ -4,11 +4,20 @@ import { MapView } from './map/MapView'
 function App() {
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2">
-        <h1 className="text-lg font-semibold text-gray-800">CrowdGIS</h1>
-        <span className="text-sm text-gray-500">
+      <header className="flex items-baseline gap-4 border-b border-hairline bg-sheet px-4 pt-2.5 pb-2">
+        <h1 className="leading-none">
+          {/* Wordmark with the Landeskarte-red brand tick */}
+          <span
+            className="block text-lg font-bold tracking-tight text-ink"
+            style={{ fontStretch: '112%' }}
+          >
+            CrowdGIS
+          </span>
+          <span aria-hidden className="mt-1 block h-0.5 w-7 bg-signal" />
+        </h1>
+        <p className="hidden text-sm text-stone sm:block">
           Das GIS, das Studierende weiterentwickeln
-        </span>
+        </p>
       </header>
 
       <main className="relative min-h-0 flex-1">
@@ -25,7 +34,7 @@ function App() {
         </div>
       </main>
 
-      <footer className="flex items-center gap-4 border-t border-gray-200 bg-white px-4 py-1 text-sm text-gray-700">
+      <footer className="flex h-8 items-center gap-5 border-t border-hairline bg-sheet px-4 text-xs">
         {features.map((f) =>
           f.StatusBarItem ? <f.StatusBarItem key={f.id} /> : null,
         )}

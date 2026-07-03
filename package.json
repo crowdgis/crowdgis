@@ -13,6 +13,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/archivo": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@geoman-io/leaflet-geoman-free": "^2.20.0",
     "@turf/turf": "^7.3.5",
     "leaflet": "^1.9.4",

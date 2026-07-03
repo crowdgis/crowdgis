@@ -16,19 +16,19 @@ function MouseTracker() {
 /** Status bar readout: WGS84 always, LV95 when inside Switzerland. */
 function CoordinateReadout() {
   const pos = useMapStore((s) => s.mousePosition)
-  if (!pos) {
-    return <span className="text-gray-400">Koordinaten: –</span>
-  }
-  const lv95 = formatLv95(pos.lat, pos.lng)
+  const lv95 = pos ? formatLv95(pos.lat, pos.lng) : null
   return (
-    <span className="tabular-nums">
-      <span className="text-gray-500">WGS84</span> {formatWgs84(pos.lat, pos.lng)}
-      {lv95 && (
-        <>
-          <span className="mx-2 text-gray-300">|</span>
-          <span className="text-gray-500">LV95</span> {lv95}
-        </>
-      )}
+    <span className="flex items-center gap-5">
+      <span className="flex items-center gap-2">
+        <span className="label-micro">WGS84</span>
+        <span className="min-w-[11.5rem] font-mono text-black">
+          {pos ? formatWgs84(pos.lat, pos.lng) : '–'}
+        </span>
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="label-micro">LV95</span>
+        <span className="min-w-[10rem] font-mono text-black">{lv95 ?? '–'}</span>
+      </span>
     </span>
   )
 }

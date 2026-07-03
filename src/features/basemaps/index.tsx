@@ -22,10 +22,10 @@ function BasemapSwitcher() {
   const basemapId = useMapStore((s) => s.basemapId)
   const setBasemapId = useMapStore((s) => s.setBasemapId)
   return (
-    <label className="flex items-center gap-2 rounded-md bg-white/95 px-3 py-2 text-sm shadow">
-      <span className="font-medium text-gray-700">Basiskarte</span>
+    <label className="flex items-center gap-2.5 rounded-[3px] border border-hairline bg-sheet px-3 py-2 shadow-sm">
+      <span className="label-micro">Basiskarte</span>
       <select
-        className="rounded border border-gray-300 bg-white px-2 py-1 text-sm"
+        className="rounded-[3px] border border-hairline bg-sheet px-2 py-1 text-sm text-black"
         value={basemapId}
         onChange={(e) => setBasemapId(e.target.value)}
         aria-label="Basiskarte wählen"
