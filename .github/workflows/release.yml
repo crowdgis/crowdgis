@@ -1,0 +1,28 @@
+name: Release
+
+# When a feature PR is merged, mark the originating issue as "live".
+# The GitHub webhook then notifies the student by mail.
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  mark-live:
+    if: >
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'feature/issue-')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Label issue as live
+        run: |
+          ISSUE="${GITHUB_HEAD_REF#feature/issue-}"
+          echo "Marking issue #$ISSUE as live"
+          gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+            --add-label "live" --remove-label "testing"
+        env:
+          GITHUB_HEAD_REF: ${{ github.event.pull_request.head.ref }}
