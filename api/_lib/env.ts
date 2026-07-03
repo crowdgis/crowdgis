@@ -21,6 +21,14 @@ export const allowedMailSuffixes = () =>
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter((s) => s.length > 0)
-/** Maximum simultaneously open requests per student. */
+/**
+ * Maximum simultaneously OPEN requests per student (not a semester total).
+ * A slot frees up as soon as a request goes live or is rejected, so this
+ * only limits how many a student has in flight at once.
+ */
 export const maxOpenPerStudent = () =>
-  Number(optionalEnv('CROWDGIS_MAX_OPEN_PER_STUDENT', '3'))
+  Number(optionalEnv('CROWDGIS_MAX_OPEN_PER_STUDENT', '5'))
+
+/** New confirmation mails a single address may trigger per day. */
+export const confirmMailsPerDay = () =>
+  Number(optionalEnv('CROWDGIS_CONFIRM_MAILS_PER_DAY', '15'))

@@ -64,6 +64,7 @@ jobs:
             Work efficiently: you do NOT need to explore the codebase broadly —
             CLAUDE.md plus a glance at src/features/ is enough context to triage.
           claude_args: |
+            --model sonnet
             --max-turns 30
             --allowedTools "Read,Grep,Glob,Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh issue close:*)"
 

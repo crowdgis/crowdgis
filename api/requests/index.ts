@@ -4,6 +4,7 @@ import { statusFromLabels } from '../../shared/requests.js'
 import {
   allowedMailSuffixes,
   appBaseUrl,
+  confirmMailsPerDay,
   courseCode,
   maxOpenPerStudent,
 } from '../_lib/env.js'
@@ -39,17 +40,8 @@ export async function GET(): Promise<Response> {
 
 /** POST /api/requests — validate and hold pending until e-mail confirm. */
 export async function POST(request: Request): Promise<Response> {
-  // Throttle per IP: guards the course-code check against brute force
-  // and the endpoint against scripted spam. 10 submissions/hour is ample
-  // for legitimate use (per-student cap is 3 open requests anyway).
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  if (await rateLimited('submit-ip', ip, 10, 3600)) {
-    return error(
-      'Zu viele Einreichungen. Bitte versuche es in einer Stunde erneut.',
-      429,
-    )
-  }
 
   let payload: SubmitPayload
   try {
@@ -91,14 +83,25 @@ export async function POST(request: Request): Promise<Response> {
   if (
     payload.courseCode?.trim().toLowerCase() !== courseCode().toLowerCase()
   ) {
+    // Brute-force guard on the course code — counted per IP and only on
+    // WRONG codes, so students who know the code are never throttled
+    // (important: a whole class may share one campus/VPN IP).
+    if (await rateLimited('badcode-ip', ip, 10, 3600)) {
+      return error(
+        'Zu viele Fehlversuche mit dem Kurscode. Bitte versuche es später erneut.',
+        429,
+      )
+    }
     return error('Der Kurscode stimmt nicht.', 403)
   }
 
-  // Throttle confirmation mails per recipient: prevents using the form
-  // to bombard someone else's inbox with confirmation requests.
-  if (await rateLimited('confirm-mail', email, 5, 86_400)) {
+  // Throttle confirmation mails per recipient (identity-based, not IP):
+  // prevents using the form to bombard an inbox and caps how many new
+  // requests one student starts per day. Does not limit total over the
+  // semester — active participation is explicitly wanted.
+  if (await rateLimited('confirm-mail', email, confirmMailsPerDay(), 86_400)) {
     return error(
-      'An diese Adresse wurden heute schon mehrere Bestätigungsmails geschickt. Bitte versuche es morgen erneut.',
+      'An diese Adresse wurden heute schon viele Bestätigungsmails geschickt. Bitte versuche es morgen erneut.',
       429,
     )
   }
@@ -106,7 +109,7 @@ export async function POST(request: Request): Promise<Response> {
   const openCount = await kv.scard(openSetKey(email))
   if (openCount >= maxOpenPerStudent()) {
     return error(
-      `Du hast bereits ${openCount} offene Anfragen. Warte, bis eine abgeschlossen ist.`,
+      `Du hast gerade ${openCount} offene Anfragen. Sobald eine umgesetzt oder abgeschlossen ist, kannst du wieder einreichen.`,
       429,
     )
   }
