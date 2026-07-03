@@ -1,7 +1,6 @@
 import type { FeatureModule } from './types'
 import attributeTable from './attribute-table'
 import basemaps from './basemaps'
-import buffer from './buffer'
 import coordinates from './coordinates'
 import dataImport from './data-import'
 import featureRequests from './feature-requests'
@@ -22,7 +21,6 @@ export const features: FeatureModule[] = [
   layerManager,
   sketching,
   measure,
-  buffer,
   attributeTable,
   basemaps,
   coordinates,
