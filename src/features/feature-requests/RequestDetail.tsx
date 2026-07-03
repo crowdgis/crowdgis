@@ -4,6 +4,7 @@ import type {
   FeatureRequestDetail,
 } from '../../../shared/requests'
 import { ApiError, getRequest, replyToRequest } from '../../lib/requestsApi'
+import { getAnswerKey } from './keys'
 import { StatusChip } from './StatusChip'
 import { useRequestsUi } from './store'
 
@@ -21,10 +22,12 @@ function activeClarification(
 function AnswerForm({
   clarification,
   number,
+  answerKey,
   onAnswered,
 }: {
   clarification: Clarification
   number: number
+  answerKey: string
   onAnswered: () => void
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -38,7 +41,7 @@ function AnswerForm({
     setBusy(true)
     setError(null)
     try {
-      await replyToRequest(number, answers, freeText)
+      await replyToRequest(number, answers, freeText, answerKey)
       onAnswered()
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Senden fehlgeschlagen.')
@@ -128,6 +131,7 @@ export function RequestDetail({ number }: { number: number }) {
   if (!detail) return <p className="p-4 text-sm text-stone">Lädt …</p>
 
   const clarification = activeClarification(detail)
+  const answerKey = getAnswerKey(number)
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -171,13 +175,20 @@ export function RequestDetail({ number }: { number: number }) {
         </div>
       )}
 
-      {clarification && (
-        <AnswerForm
-          clarification={clarification}
-          number={number}
-          onAnswered={() => setReloadToken((t) => t + 1)}
-        />
-      )}
+      {clarification &&
+        (answerKey ? (
+          <AnswerForm
+            clarification={clarification}
+            number={number}
+            answerKey={answerKey}
+            onAnswered={() => setReloadToken((t) => t + 1)}
+          />
+        ) : (
+          <p className="border border-hairline bg-paper px-3 py-2 text-xs text-stone">
+            Diese Rückfrage kann nur die Person beantworten, die den Wunsch
+            eingereicht hat — über den Link in ihrer E-Mail.
+          </p>
+        ))}
     </div>
   )
 }

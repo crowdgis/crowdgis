@@ -37,4 +37,20 @@ describe('requests UI store — URL handling', () => {
     await loadStoreWithUrl('/?bestaetigt=17')
     expect(window.location.search).not.toContain('bestaetigt')
   })
+
+  it('stores the answer key from mail links and strips it from the URL', async () => {
+    localStorage.clear()
+    await loadStoreWithUrl('/?request=21&key=geheim-123')
+    const { getAnswerKey } = await import('./keys')
+    expect(getAnswerKey(21)).toBe('geheim-123')
+    expect(window.location.search).not.toContain('key=')
+    expect(window.location.search).toContain('request=21')
+  })
+
+  it('stores the answer key from the confirm redirect', async () => {
+    localStorage.clear()
+    await loadStoreWithUrl('/?bestaetigt=22&key=geheim-456')
+    const { getAnswerKey } = await import('./keys')
+    expect(getAnswerKey(22)).toBe('geheim-456')
+  })
 })

@@ -10,7 +10,13 @@ import {
 import { renderEmail } from '../_lib/email-template.js'
 import { listFeatureRequests } from '../_lib/github.js'
 import { error, json } from '../_lib/http.js'
-import { kv, openSetKey, storePending, upvoteKey } from '../_lib/kv.js'
+import {
+  kv,
+  openSetKey,
+  rateLimited,
+  storePending,
+  upvoteKey,
+} from '../_lib/kv.js'
 import { sendMail } from '../_lib/mail.js'
 
 /** GET /api/requests — board data (no PII, no comments). */
@@ -33,6 +39,18 @@ export async function GET(): Promise<Response> {
 
 /** POST /api/requests — validate and hold pending until e-mail confirm. */
 export async function POST(request: Request): Promise<Response> {
+  // Throttle per IP: guards the course-code check against brute force
+  // and the endpoint against scripted spam. 10 submissions/hour is ample
+  // for legitimate use (per-student cap is 3 open requests anyway).
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (await rateLimited('submit-ip', ip, 10, 3600)) {
+    return error(
+      'Zu viele Einreichungen. Bitte versuche es in einer Stunde erneut.',
+      429,
+    )
+  }
+
   let payload: SubmitPayload
   try {
     payload = (await request.json()) as SubmitPayload
@@ -74,6 +92,15 @@ export async function POST(request: Request): Promise<Response> {
     payload.courseCode?.trim().toLowerCase() !== courseCode().toLowerCase()
   ) {
     return error('Der Kurscode stimmt nicht.', 403)
+  }
+
+  // Throttle confirmation mails per recipient: prevents using the form
+  // to bombard someone else's inbox with confirmation requests.
+  if (await rateLimited('confirm-mail', email, 5, 86_400)) {
+    return error(
+      'An diese Adresse wurden heute schon mehrere Bestätigungsmails geschickt. Bitte versuche es morgen erneut.',
+      429,
+    )
   }
 
   const openCount = await kv.scard(openSetKey(email))

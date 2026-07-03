@@ -4,7 +4,7 @@ import { renderEmail } from './_lib/email-template.js'
 import { appBaseUrl, webhookSecret } from './_lib/env.js'
 import { listComments } from './_lib/github.js'
 import { error, json } from './_lib/http.js'
-import { emailKey, kv, openSetKey } from './_lib/kv.js'
+import { answerKeyKey, emailKey, kv, openSetKey } from './_lib/kv.js'
 import { sendMail } from './_lib/mail.js'
 
 /** Verify GitHub's HMAC-SHA256 webhook signature. */
@@ -113,7 +113,12 @@ export async function POST(request: Request): Promise<Response> {
   if (!issue) return json({ ok: true, skipped: 'no issue' })
 
   const email = await kv.get<string>(emailKey(issue.number))
-  const link = `${appBaseUrl()}/?request=${issue.number}`
+  // Mail links carry the per-issue answer key so the submitter can act
+  // from any device; the app stores it locally (see feature-requests/keys.ts).
+  const answerKey = await kv.get<string>(answerKeyKey(issue.number))
+  const link = answerKey
+    ? `${appBaseUrl()}/?request=${issue.number}&key=${answerKey}`
+    : `${appBaseUrl()}/?request=${issue.number}`
 
   // Clarification comment from the agent → notify the student.
   if (event === 'issue_comment' && body.action === 'created' && body.comment) {
