@@ -3,7 +3,7 @@ import {
   formatAnswerComment,
   parseClarification,
   statusFromLabels,
-} from './requests'
+} from './requests.js'
 
 describe('statusFromLabels', () => {
   it('defaults to eingereicht', () => {

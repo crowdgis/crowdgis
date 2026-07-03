@@ -1,6 +1,6 @@
-import { formatAnswerComment, statusFromLabels } from '../../../shared/requests'
-import { addComment, getIssue, setLabels } from '../../_lib/github'
-import { error, json } from '../../_lib/http'
+import { formatAnswerComment, statusFromLabels } from '../../../shared/requests.js'
+import { addComment, getIssue, setLabels } from '../../_lib/github.js'
+import { error, json } from '../../_lib/http.js'
 
 interface ReplyPayload {
   answers: Record<string, string>

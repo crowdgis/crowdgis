@@ -1,7 +1,7 @@
-import { appBaseUrl } from './_lib/env'
-import { createIssue } from './_lib/github'
-import { error } from './_lib/http'
-import { emailKey, kv, openSetKey, takePending } from './_lib/kv'
+import { appBaseUrl } from './_lib/env.js'
+import { createIssue } from './_lib/github.js'
+import { error } from './_lib/http.js'
+import { emailKey, kv, openSetKey, takePending } from './_lib/kv.js'
 
 /**
  * GET /api/confirm?token=… — e-mail confirmation link.

@@ -1,5 +1,5 @@
-import { error, json } from '../../_lib/http'
-import { kv, upvoteKey, upvoterKey } from '../../_lib/kv'
+import { error, json } from '../../_lib/http.js'
+import { kv, upvoteKey, upvoterKey } from '../../_lib/kv.js'
 
 interface UpvotePayload {
   /** Anonymous client id (localStorage), guards against double votes. */

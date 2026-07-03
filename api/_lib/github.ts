@@ -1,4 +1,4 @@
-import { githubRepo, githubToken } from './env'
+import { githubRepo, githubToken } from './env.js'
 
 const API = 'https://api.github.com'
 

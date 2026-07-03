@@ -1,9 +1,9 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { parseClarification } from '../shared/requests'
-import { appBaseUrl, webhookSecret } from './_lib/env'
-import { error, json } from './_lib/http'
-import { emailKey, kv, openSetKey } from './_lib/kv'
-import { sendMail } from './_lib/mail'
+import { parseClarification } from '../shared/requests.js'
+import { appBaseUrl, webhookSecret } from './_lib/env.js'
+import { error, json } from './_lib/http.js'
+import { emailKey, kv, openSetKey } from './_lib/kv.js'
+import { sendMail } from './_lib/mail.js'
 
 /** Verify GitHub's HMAC-SHA256 webhook signature. */
 function verifySignature(payload: string, signature: string | null): boolean {

@@ -1,8 +1,8 @@
-import type { FeatureRequestDetail, RequestComment } from '../../../shared/requests'
-import { parseClarification, statusFromLabels } from '../../../shared/requests'
-import { getIssue, listComments } from '../../_lib/github'
-import { error, json } from '../../_lib/http'
-import { kv, upvoteKey } from '../../_lib/kv'
+import type { FeatureRequestDetail, RequestComment } from '../../../shared/requests.js'
+import { parseClarification, statusFromLabels } from '../../../shared/requests.js'
+import { getIssue, listComments } from '../../_lib/github.js'
+import { error, json } from '../../_lib/http.js'
+import { kv, upvoteKey } from '../../_lib/kv.js'
 
 /** GET /api/requests/:id — request detail incl. conversation. */
 export async function GET(

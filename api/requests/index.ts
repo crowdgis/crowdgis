@@ -1,16 +1,16 @@
 import { randomUUID } from 'node:crypto'
-import type { FeatureRequestSummary, SubmitPayload } from '../../shared/requests'
-import { statusFromLabels } from '../../shared/requests'
+import type { FeatureRequestSummary, SubmitPayload } from '../../shared/requests.js'
+import { statusFromLabels } from '../../shared/requests.js'
 import {
   allowedMailSuffix,
   appBaseUrl,
   courseCode,
   maxOpenPerStudent,
-} from '../_lib/env'
-import { listFeatureRequests } from '../_lib/github'
-import { error, json } from '../_lib/http'
-import { kv, openSetKey, storePending, upvoteKey } from '../_lib/kv'
-import { sendMail } from '../_lib/mail'
+} from '../_lib/env.js'
+import { listFeatureRequests } from '../_lib/github.js'
+import { error, json } from '../_lib/http.js'
+import { kv, openSetKey, storePending, upvoteKey } from '../_lib/kv.js'
+import { sendMail } from '../_lib/mail.js'
 
 /** GET /api/requests — board data (no PII, no comments). */
 export async function GET(): Promise<Response> {

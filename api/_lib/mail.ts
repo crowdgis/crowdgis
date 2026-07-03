@@ -1,4 +1,4 @@
-import { optionalEnv, requireEnv } from './env'
+import { optionalEnv, requireEnv } from './env.js'
 
 /**
  * Outbound-only mail (notifications with a link into the app).

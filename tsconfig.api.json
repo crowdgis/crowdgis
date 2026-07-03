@@ -6,10 +6,10 @@
     "types": ["node"],
     "skipLibCheck": true,
 
-    /* Bundler mode (Vercel bundles functions with esbuild) */
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    /* Node ESM: runtime requires explicit .js extensions on relative
+       imports — nodenext resolution enforces them at typecheck time. */
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
