@@ -11,22 +11,27 @@ function ImportPanel() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notes, setNotes] = useState<string[]>([])
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return
     setBusy(true)
     setError(null)
+    setNotes([])
+    const collectedNotes: string[] = []
     try {
       for (const file of Array.from(files)) {
         const layers = await importFile(file)
         for (const layer of layers) {
           addLayer(layer)
           if (layer.bounds) requestZoom(layer.bounds)
+          if (layer.note) collectedNotes.push(layer.note)
         }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Datei konnte nicht geladen werden.')
     } finally {
+      setNotes(collectedNotes)
       setBusy(false)
       if (inputRef.current) inputRef.current.value = ''
     }
@@ -59,6 +64,11 @@ function ImportPanel() {
           {error}
         </p>
       )}
+      {notes.map((note, i) => (
+        <p key={i} className="mt-2 text-xs text-stone">
+          ⚠ {note}
+        </p>
+      ))}
     </section>
   )
 }

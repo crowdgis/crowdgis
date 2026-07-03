@@ -1,9 +1,9 @@
 import { bbox } from '@turf/turf'
 import proj4 from 'proj4'
-import type { FeatureCollection } from 'geojson'
+import type { Geometry, FeatureCollection, Position } from 'geojson'
 import type { GeoRasterData } from 'georaster'
 import type { LayerBounds } from '../state/layerStore'
-// Registers EPSG:2056 with proj4 as a side effect.
+// Registers EPSG:2056 and EPSG:21781 with proj4 as a side effect.
 import './crs'
 
 /** WGS84 bounds of a FeatureCollection, null when it has no geometry. */
@@ -22,6 +22,42 @@ const SUPPORTED_RASTER_EPSG = new Set([4326, 3857, 2056])
 
 export function isSupportedRasterProjection(epsg: number): boolean {
   return SUPPORTED_RASTER_EPSG.has(epsg)
+}
+
+/** EPSG codes we can reproject vector geometries from (to WGS84). */
+const SUPPORTED_VECTOR_EPSG = new Set([4326, 3857, 2056, 21781])
+
+export function isSupportedVectorProjection(epsg: number): boolean {
+  return SUPPORTED_VECTOR_EPSG.has(epsg)
+}
+
+function reprojectCoords(from: string, coords: unknown): unknown {
+  if (typeof (coords as number[])[0] === 'number') {
+    const [x, y, ...rest] = coords as Position
+    const [lng, lat] = proj4(from, 'EPSG:4326', [x, y])
+    return rest.length > 0 ? [lng, lat, ...rest] : [lng, lat]
+  }
+  return (coords as unknown[]).map((c) => reprojectCoords(from, c))
+}
+
+/**
+ * Reproject a GeoJSON geometry to WGS84 using our verified proj4 defs.
+ * We do this ourselves because the GeoPackage library's in-browser
+ * reprojection is unreliable for Swiss CRS (produces shifted coordinates).
+ */
+export function reprojectGeometryToWgs84(geom: Geometry, epsg: number): Geometry {
+  if (epsg === 4326) return geom
+  const from = `EPSG:${epsg}`
+  if (geom.type === 'GeometryCollection') {
+    return {
+      type: 'GeometryCollection',
+      geometries: geom.geometries.map((g) => reprojectGeometryToWgs84(g, epsg)),
+    }
+  }
+  return {
+    ...geom,
+    coordinates: reprojectCoords(from, geom.coordinates),
+  } as Geometry
 }
 
 /**
