@@ -4,8 +4,21 @@ import { Redis } from '@upstash/redis'
  * Private key-value store (Upstash Redis).
  * Holds everything that must NOT appear in public GitHub issues:
  * student e-mail addresses, confirmation tokens, upvote counters.
+ * The Vercel Marketplace integration exposes KV_REST_API_* names;
+ * plain Upstash setups use UPSTASH_REDIS_REST_*.
  */
-export const kv = Redis.fromEnv()
+function readEnv(...names: string[]): string {
+  for (const name of names) {
+    const value = process.env[name]
+    if (value) return value
+  }
+  throw new Error(`Missing environment variable: ${names[0]}`)
+}
+
+export const kv = new Redis({
+  url: readEnv('KV_REST_API_URL', 'UPSTASH_REDIS_REST_URL'),
+  token: readEnv('KV_REST_API_TOKEN', 'UPSTASH_REDIS_REST_TOKEN'),
+})
 
 export interface PendingRequest {
   title: string
