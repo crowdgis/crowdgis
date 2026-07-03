@@ -65,7 +65,11 @@ jobs:
             5. Commit with a descriptive English message and push the branch.
 
             Stay strictly inside `src/features/` plus the single registry entry.
+          # Test phase: Sonnet keeps cost low and handles the scoped feature
+          # modules well. For maximum code quality later (e.g. on the ZHAW
+          # account) change this single line to: --model opus
           claude_args: |
+            --model sonnet
             --max-turns 50
             --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm ci)"
 
