@@ -70,6 +70,10 @@ jobs:
             --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm ci)"
 
       - name: Open pull request
+        env:
+          # PRs created with the default GITHUB_TOKEN do not trigger CI runs.
+          # The bot PAT (crowdgis account) makes pull_request workflows fire.
+          GH_TOKEN: ${{ secrets.CROWDGIS_BOT_PAT || github.token }}
         run: |
           BRANCH="feature/issue-$ISSUE"
           if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
