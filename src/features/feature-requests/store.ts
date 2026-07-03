@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { saveAnswerKey } from './keys'
 
 type View = { kind: 'board' } | { kind: 'form' } | { kind: 'detail'; number: number }
 
@@ -23,6 +24,25 @@ function initialFromUrl(): Pick<
   const params = new URLSearchParams(window.location.search)
 
   const requestNumber = Number(params.get('request'))
+  const confirmed = Number(params.get('bestaetigt'))
+  const issueFromUrl = requestNumber > 0 ? requestNumber : confirmed
+
+  // Mail links carry a per-issue answer key; keep it out of the URL/history
+  // and remember it locally so the submitter can answer in the app.
+  const answerKey = params.get('key')
+  if (answerKey && Number.isInteger(issueFromUrl) && issueFromUrl > 0) {
+    saveAnswerKey(issueFromUrl, answerKey)
+  }
+  if (params.has('key')) {
+    params.delete('key')
+    const rest = params.toString()
+    window.history.replaceState(
+      {},
+      '',
+      window.location.pathname + (rest ? `?${rest}` : ''),
+    )
+  }
+
   if (Number.isInteger(requestNumber) && requestNumber > 0) {
     return {
       open: true,
@@ -32,7 +52,6 @@ function initialFromUrl(): Pick<
   }
 
   if (params.has('bestaetigt')) {
-    const confirmed = Number(params.get('bestaetigt'))
     // One-time event: drop the param so a manual refresh starts clean.
     params.delete('bestaetigt')
     const rest = params.toString()

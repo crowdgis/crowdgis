@@ -1,10 +1,13 @@
 import { formatAnswerComment, statusFromLabels } from '../../../shared/requests.js'
 import { addComment, getIssue, setLabels } from '../../_lib/github.js'
 import { error, json, requestIdFromUrl } from '../../_lib/http.js'
+import { answerKeyKey, kv } from '../../_lib/kv.js'
 
 interface ReplyPayload {
   answers: Record<string, string>
   freeText?: string
+  /** Per-issue secret from the submitter's mail link (see confirm.ts). */
+  key?: string
 }
 
 /** POST /api/requests/:id/reply — student answers a clarification. */
@@ -19,6 +22,16 @@ export async function POST(request: Request): Promise<Response> {
     payload = (await request.json()) as ReplyPayload
   } catch {
     return error('Ungültige Anfrage.', 400)
+  }
+
+  // Only the original submitter may answer: their mail links carry a
+  // per-issue secret that was generated at confirmation time.
+  const expectedKey = await kv.get<string>(answerKeyKey(number))
+  if (!expectedKey || payload.key !== expectedKey) {
+    return error(
+      'Antworten ist nur über deinen persönlichen Link aus der E-Mail möglich.',
+      403,
+    )
   }
 
   const answers = payload.answers ?? {}

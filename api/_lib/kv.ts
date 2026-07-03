@@ -36,6 +36,10 @@ export const openSetKey = (email: string) => `open:${email.toLowerCase()}`
 export const upvoteKey = (issueNumber: number) => `upvotes:${issueNumber}`
 export const upvoterKey = (issueNumber: number, voter: string) =>
   `upvoted:${issueNumber}:${voter}`
+/** Per-issue secret; required to answer clarifications (reply endpoint). */
+export const answerKeyKey = (issueNumber: number) => `answerkey:${issueNumber}`
+/** Rate-limit counters (INCR + EXPIRE). */
+export const rateKey = (scope: string, id: string) => `rl:${scope}:${id}`
 
 export async function storePending(
   token: string,
@@ -47,8 +51,30 @@ export async function storePending(
 export async function takePending(
   token: string,
 ): Promise<PendingRequest | null> {
-  const key = pendingKey(token)
-  const value = await kv.get<PendingRequest>(key)
-  if (value) await kv.del(key)
-  return value ?? null
+  // Atomic GETDEL: even two concurrent confirmations redeem exactly once
+  // (mail-security link scanners tend to fetch links more than once).
+  return kv.getdel<PendingRequest>(pendingKey(token))
+}
+
+/** Peek at a pending request without consuming it (for the confirm page). */
+export async function peekPending(
+  token: string,
+): Promise<PendingRequest | null> {
+  return kv.get<PendingRequest>(pendingKey(token))
+}
+
+/**
+ * Increment a rate-limit counter; true when the limit is exceeded.
+ * The window starts with the first hit and expires automatically.
+ */
+export async function rateLimited(
+  scope: string,
+  id: string,
+  limit: number,
+  windowSeconds: number,
+): Promise<boolean> {
+  const key = rateKey(scope, id)
+  const count = await kv.incr(key)
+  if (count === 1) await kv.expire(key, windowSeconds)
+  return count > limit
 }

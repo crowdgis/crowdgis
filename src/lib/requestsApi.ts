@@ -62,10 +62,11 @@ export function replyToRequest(
   number: number,
   answers: Record<string, string>,
   freeText: string,
+  key: string,
 ): Promise<{ ok: boolean }> {
   return request(`/api/requests/${number}/reply`, {
     method: 'POST',
-    body: JSON.stringify({ answers, freeText }),
+    body: JSON.stringify({ answers, freeText, key }),
   })
 }
 
