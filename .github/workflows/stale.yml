@@ -1,0 +1,32 @@
+name: Stale clarifications
+
+# Feature requests waiting >7 days for a student answer are discarded.
+on:
+  schedule:
+    - cron: '17 5 * * *' # daily 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  discard-stale:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Close stale rueckfrage issues
+        run: |
+          CUTOFF=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          gh issue list --repo "$GITHUB_REPOSITORY" \
+            --label "rueckfrage" --state open \
+            --json number,updatedAt \
+            --jq ".[] | select(.updatedAt < \"$CUTOFF\") | .number" |
+          while read -r NUMBER; do
+            echo "Discarding stale issue #$NUMBER"
+            gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body \
+              "Diese Anfrage wurde geschlossen, weil die Rückfrage über 7 Tage unbeantwortet blieb. Du kannst jederzeit einen neuen, präziseren Feature-Wunsch einreichen. (Automatischer Hinweis)"
+            gh issue edit "$NUMBER" --repo "$GITHUB_REPOSITORY" \
+              --add-label "verworfen" --remove-label "rueckfrage"
+            gh issue close "$NUMBER" --repo "$GITHUB_REPOSITORY"
+          done

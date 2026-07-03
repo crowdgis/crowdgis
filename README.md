@@ -30,6 +30,39 @@ Features sind eigenständige Module unter `src/features/<id>/` und werden über
 die Registry (`src/features/registry.ts`) eingehängt — Details und verbindliche
 Regeln für den Agenten in [CLAUDE.md](CLAUDE.md).
 
-Der Feature-Request-Workflow (Formular → GitHub Issue → Triage → Freigabe →
-automatische Implementierung → PR → Preview → Merge) ist im
-Implementierungsplan dokumentiert und wird in den Meilensteinen M3–M5 gebaut.
+## Feature-Request-Pipeline
+
+```
+Formular (App) → Bestätigungsmail → GitHub Issue (öffentlich, ohne PII)
+  → triage.yml (Agent: Rückfragen als JSON / "bereit")
+  → Hanno setzt Label "freigegeben" (1 Klick)
+  → implement.yml (Agent: Branch + Feature + Tests) → PR + Preview
+  → Merge = live, Mail an Studierende
+```
+
+Status-Labels: `eingereicht → rueckfrage ↔ eingereicht → bereit → freigegeben
+→ in-arbeit → testing → live` | `verworfen`
+
+## Setup (einmalig, nach dem Push in die Org)
+
+1. **Labels anlegen:**
+   ```bash
+   for l in feature-request eingereicht rueckfrage bereit freigegeben in-arbeit testing live verworfen; do
+     gh label create "$l" --repo CrowdGIS/crowdgis || true
+   done
+   ```
+2. **Repo-Secret** `CLAUDE_CODE_OAUTH_TOKEN` setzen (`claude setup-token`).
+3. **Vercel:** Repo importieren (Framework Vite), Upstash Redis über den
+   Marketplace verbinden, Env-Vars gemäss [.env.example](.env.example) setzen.
+4. **GitHub-Webhook** (Repo → Settings → Webhooks): URL
+   `https://<app>/api/github-webhook`, Content type `application/json`,
+   Secret = `CROWDGIS_WEBHOOK_SECRET`, Events: *Issues*, *Issue comments*.
+5. **Branch Protection** auf `main`: CI-Check erforderlich, 1 Review.
+
+## Hinweise
+
+- `npm audit` meldet Findings in der webpack4-Kette von `georaster` —
+  das sind falsch deklarierte Build-Zeit-Abhängigkeiten, die nicht ins
+  Browser-Bundle gelangen.
+- E-Mail-Adressen der Studierenden landen nie in GitHub; die Zuordnung
+  Issue↔Mail liegt ausschliesslich im privaten Upstash-Store.
