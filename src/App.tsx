@@ -18,6 +18,11 @@ function App() {
         <p className="hidden text-sm text-stone sm:block">
           Das GIS, das Studierende weiterentwickeln
         </p>
+        <div className="ml-auto flex items-center gap-2">
+          {features.map((f) =>
+            f.HeaderItem ? <f.HeaderItem key={f.id} /> : null,
+          )}
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
@@ -39,6 +44,9 @@ function App() {
               ) : null,
             )}
           </div>
+          {features.map((f) =>
+            f.Overlay ? <f.Overlay key={f.id} /> : null,
+          )}
         </main>
       </div>
 

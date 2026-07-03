@@ -3,6 +3,7 @@ import attributeTable from './attribute-table'
 import basemaps from './basemaps'
 import coordinates from './coordinates'
 import dataImport from './data-import'
+import featureRequests from './feature-requests'
 import layerManager from './layer-manager'
 import measure from './measure'
 import sketching from './sketching'
@@ -23,4 +24,5 @@ export const features: FeatureModule[] = [
   attributeTable,
   basemaps,
   coordinates,
+  featureRequests,
 ]

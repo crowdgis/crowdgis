@@ -38,4 +38,14 @@ export interface FeatureModule {
    * Use for data views (attribute table, …); render null when closed.
    */
   BottomPanel?: ComponentType
+  /**
+   * Rendered on the right side of the app header.
+   * Use for compact actions (buttons, toggles).
+   */
+  HeaderItem?: ComponentType
+  /**
+   * Rendered above the map area (position yourself absolutely inside
+   * the map container). Use for drawers and dialogs; render null when closed.
+   */
+  Overlay?: ComponentType
 }
