@@ -45,6 +45,9 @@ interface LayerState {
   setVisible: (id: string, visible: boolean) => void
   zoomTarget: ZoomTarget | null
   requestZoom: (bounds: LayerBounds) => void
+  /** Layer whose attribute table is open, null = closed. */
+  attributeTableLayerId: string | null
+  setAttributeTableLayer: (id: string | null) => void
 }
 
 let zoomToken = 0
@@ -57,7 +60,11 @@ export const useLayerStore = create<LayerState>((set) => ({
     return id
   },
   removeLayer: (id) =>
-    set((s) => ({ layers: s.layers.filter((l) => l.id !== id) })),
+    set((s) => ({
+      layers: s.layers.filter((l) => l.id !== id),
+      attributeTableLayerId:
+        s.attributeTableLayerId === id ? null : s.attributeTableLayerId,
+    })),
   setVisible: (id, visible) =>
     set((s) => ({
       layers: s.layers.map((l) => (l.id === id ? { ...l, visible } : l)),
@@ -67,4 +74,6 @@ export const useLayerStore = create<LayerState>((set) => ({
     zoomToken += 1
     set({ zoomTarget: { bounds, token: zoomToken } })
   },
+  attributeTableLayerId: null,
+  setAttributeTableLayer: (id) => set({ attributeTableLayerId: id }),
 }))

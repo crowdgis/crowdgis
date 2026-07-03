@@ -42,6 +42,10 @@ function App() {
         </main>
       </div>
 
+      {features.map((f) =>
+        f.BottomPanel ? <f.BottomPanel key={f.id} /> : null,
+      )}
+
       <footer className="flex h-8 items-center gap-5 border-t border-hairline bg-sheet px-4 text-xs">
         {features.map((f) =>
           f.StatusBarItem ? <f.StatusBarItem key={f.id} /> : null,

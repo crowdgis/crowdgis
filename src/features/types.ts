@@ -33,4 +33,9 @@ export interface FeatureModule {
    * Use for persistent panels (layer list, data import, …).
    */
   SidebarPanel?: ComponentType
+  /**
+   * Rendered between map and status bar, full width.
+   * Use for data views (attribute table, …); render null when closed.
+   */
+  BottomPanel?: ComponentType
 }

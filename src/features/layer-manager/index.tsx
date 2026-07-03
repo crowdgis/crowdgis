@@ -53,6 +53,7 @@ function LayerListPanel() {
   const setVisible = useLayerStore((s) => s.setVisible)
   const removeLayer = useLayerStore((s) => s.removeLayer)
   const requestZoom = useLayerStore((s) => s.requestZoom)
+  const setAttributeTableLayer = useLayerStore((s) => s.setAttributeTableLayer)
 
   return (
     <section>
@@ -84,6 +85,17 @@ function LayerListPanel() {
               <span className="label-micro">
                 {layer.source.kind === 'vector' ? 'VEK' : 'RAS'}
               </span>
+              {layer.source.kind === 'vector' && (
+                <button
+                  type="button"
+                  onClick={() => setAttributeTableLayer(layer.id)}
+                  title="Attributtabelle öffnen"
+                  aria-label={`Attributtabelle von ${layer.name} öffnen`}
+                  className="rounded-[3px] px-1 text-stone hover:bg-paper hover:text-ink"
+                >
+                  ▦
+                </button>
+              )}
               {layer.bounds && (
                 <button
                   type="button"

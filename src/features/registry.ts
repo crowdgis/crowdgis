@@ -1,8 +1,11 @@
 import type { FeatureModule } from './types'
+import attributeTable from './attribute-table'
 import basemaps from './basemaps'
 import coordinates from './coordinates'
 import dataImport from './data-import'
 import layerManager from './layer-manager'
+import measure from './measure'
+import sketching from './sketching'
 
 /**
  * Central feature registry.
@@ -15,6 +18,9 @@ import layerManager from './layer-manager'
 export const features: FeatureModule[] = [
   dataImport,
   layerManager,
+  sketching,
+  measure,
+  attributeTable,
   basemaps,
   coordinates,
 ]

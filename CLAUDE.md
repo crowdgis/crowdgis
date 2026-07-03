@@ -23,7 +23,9 @@ src/features/<kebab-case-id>/
 ```
 
 - Features plug into the UI ONLY via the `FeatureModule` slots
-  (`MapSlot`, `ToolbarItem`, `StatusBarItem`, `SidebarPanel`).
+  (`MapSlot`, `ToolbarItem`, `StatusBarItem`, `SidebarPanel`, `BottomPanel`).
+- Features never import from other features. Cross-feature communication
+  goes through the shared stores in `src/state/`.
 - To activate a feature, add exactly one import + array entry in
   `src/features/registry.ts`. That is the only core file you may edit.
 - Never modify other features, `src/App.tsx`, `src/map/MapView.tsx`,
