@@ -25,6 +25,15 @@ describe('renderEmail', () => {
     expect(mail.html).toContain('Lehrprojekt an der ZHAW')
   })
 
+  it('renders newlines inside paragraphs as <br>', () => {
+    const multi = renderEmail({
+      heading: 'H',
+      paragraphs: ['Zeile 1\nZeile 2'],
+      reason: 'r',
+    })
+    expect(multi.html).toContain('Zeile 1<br>Zeile 2')
+  })
+
   it('escapes HTML in user-provided content', () => {
     const evil = renderEmail({
       heading: 'Titel <script>alert(1)</script>',
