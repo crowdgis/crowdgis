@@ -61,6 +61,8 @@ jobs:
                   explain why in German, friendly and constructive.
 
             Rules: never modify files, never touch other issues, at most one comment.
+            Work efficiently: you do NOT need to explore the codebase broadly —
+            CLAUDE.md plus a glance at src/features/ is enough context to triage.
           claude_args: |
-            --max-turns 12
+            --max-turns 30
             --allowedTools "Read,Grep,Glob,Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh issue close:*)"
