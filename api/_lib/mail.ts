@@ -4,21 +4,30 @@ import { optionalEnv, requireEnv } from './env.js'
  * Outbound-only mail (notifications with a link into the app).
  * Students never reply by mail; they answer inside the app.
  *
- * Primary provider: AgentMail (dedicated project inbox, API-based,
- * enables inbound webhooks as a future intake channel).
- * Fallback: classic SMTP via nodemailer when SMTP env vars are set
- * and no AgentMail key is configured.
+ * Provider selection (in order):
+ * 1. SMTP — used as soon as host + password are configured. This is the
+ *    production path (custom domain sender mail@crowdgis.ch via Infomaniak,
+ *    which authenticates SPF/DKIM/DMARC for reliable delivery to ZHAW).
+ * 2. AgentMail — fallback while SMTP is not yet fully set up.
+ *
+ * This ordering lets us switch from AgentMail to SMTP by simply adding the
+ * SMTP password in Vercel — no code change and no downtime in between.
  */
 export async function sendMail(
   to: string,
   subject: string,
   text: string,
 ): Promise<void> {
-  if (process.env.AGENTMAIL_API_KEY) {
-    await sendViaAgentMail(to, `[CrowdGIS] ${subject}`, text)
+  const withPrefix = `[CrowdGIS] ${subject}`
+  if (process.env.CROWDGIS_SMTP_HOST && process.env.CROWDGIS_SMTP_PASS) {
+    await sendViaSmtp(to, withPrefix, text)
     return
   }
-  await sendViaSmtp(to, `[CrowdGIS] ${subject}`, text)
+  if (process.env.AGENTMAIL_API_KEY) {
+    await sendViaAgentMail(to, withPrefix, text)
+    return
+  }
+  throw new Error('No mail provider configured (set SMTP or AgentMail env vars).')
 }
 
 async function sendViaAgentMail(
