@@ -30,6 +30,8 @@ export interface ImportedLayer {
   name: string
   bounds: LayerBounds | null
   source: LayerSource
+  /** Non-fatal import note shown once to the user (e.g. skipped features). */
+  note?: string
 }
 
 interface ZoomTarget {
