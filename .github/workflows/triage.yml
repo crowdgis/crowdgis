@@ -1,13 +1,12 @@
 name: Triage
 
-# Runs the triage agent when a feature request is (re)submitted:
-# - new issue with label "feature-request"
-# - student answer arrives as a comment ("Antwort: …", proxy re-adds "eingereicht")
+# Runs the triage agent whenever the label "eingereicht" is added.
+# That single trigger covers both cases: issue creation via the proxy
+# (labels are set at creation, firing one "labeled" event per label) and
+# re-triage after a student answer (the reply proxy re-adds "eingereicht").
 on:
   issues:
-    types: [opened, labeled]
-  issue_comment:
-    types: [created]
+    types: [labeled]
 
 permissions:
   contents: read
@@ -20,15 +19,9 @@ concurrency:
 
 jobs:
   triage:
-    # Only feature requests; for label events only the "eingereicht" transition;
-    # for comments only student answers via the proxy (start with "Antwort:").
     if: >
-      contains(github.event.issue.labels.*.name, 'feature-request') &&
-      (
-        (github.event_name == 'issues' && github.event.action == 'opened') ||
-        (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'eingereicht') ||
-        (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, 'Antwort:'))
-      )
+      github.event.label.name == 'eingereicht' &&
+      contains(github.event.issue.labels.*.name, 'feature-request')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
