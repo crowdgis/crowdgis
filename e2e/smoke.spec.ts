@@ -80,6 +80,24 @@ test('sidebar panels collapse, and the icon rail works', async ({ page }) => {
   )
 })
 
+test('Chinese glossary stays confined to its own collapsed panel', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.leaflet-container')).toBeVisible()
+
+  // Not open by default: no Chinese text anywhere on first load.
+  const glossaryToggle = page.getByRole('button', { name: 'Chinesisches Glossar' })
+  const chineseSample = page.getByText('底图：可切换的背景地图样式')
+  await expect(glossaryToggle).toHaveAttribute('aria-expanded', 'false')
+  await expect(chineseSample).toHaveCount(0)
+
+  // Opening it reveals Chinese text only inside this panel.
+  await glossaryToggle.click()
+  await expect(chineseSample).toBeVisible()
+
+  await glossaryToggle.click()
+  await expect(chineseSample).toHaveCount(0)
+})
+
 test('drawing a marker shows a proper icon, not a broken image', async ({
   page,
 }) => {
