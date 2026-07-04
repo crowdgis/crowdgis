@@ -30,6 +30,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Mark as in progress
+        id: mark
         run: |
           gh issue edit "$ISSUE" --add-label "in-arbeit" \
             --remove-label "freigegeben" --remove-label "bereit"
@@ -70,10 +71,14 @@ jobs:
           # account) change this single line to: --model opus
           claude_args: |
             --model sonnet
-            --max-turns 50
-            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm ci)"
+            --max-turns 100
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm ci),Bash(npm install:*)"
 
       - name: Open pull request
+        # Runs even when the agent step failed: if a branch was pushed we
+        # still open the PR (CI judges it); otherwise the issue is reset
+        # to "eingereicht" so it never gets stuck on "in-arbeit".
+        if: always() && steps.mark.outcome == 'success'
         env:
           # PRs created with the default GITHUB_TOKEN do not trigger CI runs.
           # The bot PAT (crowdgis account) makes pull_request workflows fire.
