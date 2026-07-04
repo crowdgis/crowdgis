@@ -8,6 +8,7 @@ import dataImport from './data-import'
 import featureRequests from './feature-requests'
 import layerManager from './layer-manager'
 import measure from './measure'
+import sessionPersistence from './session-persistence'
 import sketching from './sketching'
 
 /**
@@ -28,5 +29,6 @@ export const features: FeatureModule[] = [
   basemaps,
   coordinates,
   featureRequests,
+  sessionPersistence,
   chineseGlossary,
 ]
