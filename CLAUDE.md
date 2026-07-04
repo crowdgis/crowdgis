@@ -43,6 +43,10 @@ src/features/<kebab-case-id>/
 
 - `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`
   must all pass before you finish.
+- If you changed anything visual (UI, map, icons, styling), also run
+  `npm run test:e2e` — a Playwright browser smoke test that catches
+  broken images and render errors the other checks cannot see. It also
+  runs in CI on every PR, so a UI regression blocks the merge.
 - Every new feature ships with its own tests. Pure logic (calculations,
   formatting, parsing) must be unit-tested; UI slots need at least a smoke test.
 - German UI texts, English code/comments/commits.

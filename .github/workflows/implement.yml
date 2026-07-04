@@ -42,6 +42,9 @@ jobs:
 
       - run: npm ci
 
+      # Browser for the e2e smoke test the agent runs on UI changes.
+      - run: npx playwright install --with-deps chromium
+
       - uses: anthropics/claude-code-action@v1
         id: agent
         # A failed first attempt is handled by the repair step below.
@@ -74,6 +77,10 @@ jobs:
                registry entry only when adding a new module).
             4. Run `npm run lint`, `npm run typecheck`, `npm test` and
                `npm run build` — all must pass; fix your code until they do.
+               If you changed anything visual (UI, map, icons, styling),
+               ALSO run `npm run test:e2e` (a browser smoke test) and fix
+               what it reports — it catches broken images and render errors
+               that the other checks cannot see.
             5. Commit with a descriptive English message and push the branch.
 
             Be economical with turns: plan first, avoid re-reading large files.
@@ -83,7 +90,7 @@ jobs:
           claude_args: |
             --model sonnet
             --max-turns 100
-            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git fetch:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm ci),Bash(npm install:*)"
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git fetch:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm run test:e2e),Bash(npm ci),Bash(npm install:*)"
 
       - name: Repair attempt (self-heal, max 1 retry)
         # Automatic repair layer: when the first agent run fails (e.g. ran
@@ -120,7 +127,7 @@ jobs:
           claude_args: |
             --model sonnet
             --max-turns 100
-            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git fetch:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm ci),Bash(npm install:*)"
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git fetch:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm run test:e2e),Bash(npm ci),Bash(npm install:*)"
 
       - name: Push agent work (deterministic delivery)
         # The agent sometimes finishes without a successful push (observed

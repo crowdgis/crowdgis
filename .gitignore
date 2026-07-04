@@ -29,3 +29,7 @@ dist-ssr
 .agentmail-key.txt
 .smtp-pass.txt
 .smtp-verify.mjs
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

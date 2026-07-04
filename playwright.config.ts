@@ -1,0 +1,26 @@
+import { defineConfig, devices } from '@playwright/test'
+
+/**
+ * E2E smoke tests. Build once, serve the production bundle, run a small
+ * set of "does the app actually work in a browser" checks — the class of
+ * problem unit tests and typechecking cannot see (broken images, runtime
+ * console errors, blank map).
+ */
+export default defineConfig({
+  testDir: './e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? 'line' : 'list',
+  use: {
+    baseURL: 'http://localhost:4173',
+    trace: 'on-first-retry',
+  },
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  webServer: {
+    command: 'npm run build && npm run preview -- --port 4173',
+    url: 'http://localhost:4173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
+})
