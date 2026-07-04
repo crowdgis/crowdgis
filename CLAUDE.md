@@ -31,8 +31,12 @@ src/features/<kebab-case-id>/
 - You MAY add a runtime dependency with `npm install <package>` when the
   feature genuinely needs one. Prefer small, popular, well-maintained
   libraries; never replace or remove existing dependencies.
-- Never modify other features, `src/App.tsx`, `src/map/MapView.tsx`,
-  build config, CI workflows, or anything under `.github/` or `api/`.
+- A request can be a NEW feature or a BUGFIX/IMPROVEMENT to an existing
+  one. For a fix, edit the responsible feature's own files in place (no
+  new module, no registry change). Only touch the ONE feature the issue
+  is about — never change unrelated features while you are at it.
+- Never modify `src/App.tsx`, `src/map/MapView.tsx`, build config,
+  CI workflows, or anything under `.github/` or `api/`.
 - Shared logic belongs in `src/lib/` only if at least two features need it.
 
 ## Quality gates
