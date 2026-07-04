@@ -4,7 +4,7 @@ import { renderEmail } from './_lib/email-template.js'
 import { appBaseUrl, webhookSecret } from './_lib/env.js'
 import { listComments } from './_lib/github.js'
 import { error, json } from './_lib/http.js'
-import { answerKeyKey, emailKey, kv, openSetKey } from './_lib/kv.js'
+import { answerKeyKey, emailKey, kv, notifiedKey, openSetKey } from './_lib/kv.js'
 import { sendMail } from './_lib/mail.js'
 
 /** Verify GitHub's HMAC-SHA256 webhook signature. */
@@ -147,7 +147,15 @@ export async function POST(request: Request): Promise<Response> {
   // Status label added → notify on the relevant transitions.
   if (event === 'issues' && body.action === 'labeled' && body.label) {
     const notify = NOTIFY_LABELS[body.label.name]
-    if (notify && email) {
+    // Each lifecycle mail at most once per issue: internal repair cycles
+    // re-add labels and must stay invisible to students.
+    const firstTime =
+      notify && email
+        ? (await kv.set(notifiedKey(issue.number, body.label.name), 1, {
+            nx: true,
+          })) !== null
+        : false
+    if (notify && email && firstTime) {
       const paragraphs = [...notify.paragraphs]
       if (notify.includeAgentComment) {
         const reason = await latestAgentComment(issue.number)
