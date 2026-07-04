@@ -48,16 +48,23 @@ jobs:
                   of what will be built, so the student can see how their words were
                   understood.
 
-               B) UNCLEAR and fewer than 2 previous clarification comments exist →
-                  add label "rueckfrage", remove "eingereicht". Comment with a short
-                  German intro plus ONE fenced ```json block exactly in the
-                  CLAUDE.md clarification schema (max 3 questions, 2–4 options each).
+               B) UNCLEAR — or not viable as literally stated while a viable
+                  variant of the underlying need exists — and fewer than 2
+                  previous clarification comments exist → add label "rueckfrage",
+                  remove "eingereicht". Comment with a short German intro plus
+                  ONE fenced ```json block exactly in the CLAUDE.md clarification
+                  schema (max 3 questions, 2–4 options each). Design the options
+                  per CLAUDE.md "Designing questions, options, and rejections":
+                  only options you would mark "bereit", with the constraint
+                  explained in the question text.
 
                C) UNCLEAR after 2 clarification rounds → choose the smallest
                   reasonable interpretation, comment it (German) and proceed as A).
 
-               D) INFEASIBLE (out of scope, not implementable client-side, duplicate)
-                  → add label "verworfen", remove "eingereicht", close the issue and
+               D) INFEASIBLE (duplicate, abuse, or NO reasonable variant of the
+                  underlying need is implementable client-side — a wish that is
+                  merely too big or names the wrong solution gets B, not D) →
+                  add label "verworfen", remove "eingereicht", close the issue and
                   explain why in German, friendly and constructive.
 
             Rules: never modify files, never touch other issues, at most one comment.
