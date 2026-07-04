@@ -30,7 +30,7 @@ Lösche jeden Feature-Ordner unter `src/features/`, der **nicht** zur Baseline
 gehört, und entferne dessen Import + Array-Eintrag aus `registry.ts`.
 Baseline-Features (dürfen bleiben):
 `data-import`, `layer-manager`, `sketching`, `measure`, `attribute-table`,
-`basemaps`, `coordinates`, `feature-requests`.
+`basemaps`, `coordinates`, `feature-requests`, `map-overview`.
 
 > ⚠️ **Grenze von Variante B:** Der Agent integriert manche Wünsche in
 > BESTEHENDE Baseline-Module statt einen eigenen Ordner anzulegen
