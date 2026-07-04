@@ -14,6 +14,7 @@ import {
   layerNameFromFilename,
   toFeatureCollection,
 } from './parse'
+import { detectEpsgFromPrj } from './prj'
 
 /** Client-side raster limit; larger files freeze the browser tab. */
 export const MAX_RASTER_BYTES = 100 * 1024 * 1024
@@ -189,6 +190,108 @@ async function loadGeoTiff(file: File): Promise<ImportedLayer[]> {
   ]
 }
 
+/**
+ * Read a shapefile ZIP (.shp, .shx, .dbf, optional .prj) and reproject it
+ * to WGS84 ourselves, same rationale as readGpkgTable: we don't trust a
+ * library to get Swiss CRS reprojection right. A ZIP may bundle several
+ * shapefiles, so this can return more than one layer.
+ *
+ * COMPLETENESS GUARANTEE: if a shapefile cannot be read or its projection
+ * is not recognized, the whole import fails loudly instead of showing an
+ * incomplete or misplaced layer.
+ */
+async function loadShapefile(file: File): Promise<ImportedLayer[]> {
+  const [{ default: JSZip }, { read: readShapefile }] = await Promise.all([
+    import('jszip'),
+    import('shapefile'),
+  ])
+  const zip = await JSZip.loadAsync(file)
+  const entries = Object.values(zip.files).filter((f) => !f.dir)
+  const shpEntries = entries.filter((f) => /\.shp$/i.test(f.name))
+  if (shpEntries.length === 0) {
+    throw new Error('Das ZIP enthält keine .shp-Datei.')
+  }
+
+  function findSibling(shpName: string, ext: string) {
+    const base = shpName.slice(0, -4).toLowerCase()
+    return entries.find((f) => f.name.toLowerCase() === `${base}.${ext}`)
+  }
+
+  const layers: ImportedLayer[] = []
+  for (const shpEntry of shpEntries) {
+    const shpLabel = shpEntry.name.split('/').pop() ?? shpEntry.name
+    const dbfEntry = findSibling(shpEntry.name, 'dbf')
+    const shxEntry = findSibling(shpEntry.name, 'shx')
+    const prjEntry = findSibling(shpEntry.name, 'prj')
+    if (!dbfEntry) {
+      throw new Error(`Zu „${shpLabel}“ fehlt die zugehörige .dbf-Datei.`)
+    }
+    if (!shxEntry) {
+      throw new Error(`Zu „${shpLabel}“ fehlt die zugehörige .shx-Datei.`)
+    }
+
+    let epsg = 4326
+    let projectionNote: string | undefined
+    if (prjEntry) {
+      const wkt = await prjEntry.async('text')
+      const detected = detectEpsgFromPrj(wkt)
+      if (detected == null || !isSupportedVectorProjection(detected)) {
+        throw new Error(
+          `Koordinatensystem von „${shpLabel}“ wird nicht unterstützt ` +
+            '(unterstützt: WGS84, Web Mercator, LV95, LV03).',
+        )
+      }
+      epsg = detected
+    } else {
+      projectionNote = `„${layerNameFromFilename(shpLabel)}“: keine .prj-Datei gefunden, WGS84 angenommen.`
+    }
+
+    const [shpBytes, dbfBytes] = await Promise.all([
+      shpEntry.async('arraybuffer'),
+      dbfEntry.async('arraybuffer'),
+    ])
+
+    let collection: FeatureCollection
+    try {
+      collection = await readShapefile(shpBytes, dbfBytes)
+    } catch {
+      throw new Error(`„${shpLabel}“ konnte nicht als Shapefile gelesen werden.`)
+    }
+
+    let empty = 0
+    const features: Feature[] = []
+    for (const feature of collection.features) {
+      if (!feature.geometry) {
+        empty += 1
+        continue
+      }
+      features.push({
+        ...feature,
+        geometry: reprojectGeometryToWgs84(feature.geometry, epsg),
+      })
+    }
+    if (features.length === 0) {
+      throw new Error(`„${shpLabel}“ enthält keine Geometrien.`)
+    }
+
+    const geojson: FeatureCollection = { type: 'FeatureCollection', features }
+    const name =
+      shpEntries.length === 1
+        ? layerNameFromFilename(file.name)
+        : layerNameFromFilename(shpLabel)
+    layers.push({
+      name,
+      bounds: vectorBounds(geojson),
+      source: { kind: 'vector', geojson },
+      note:
+        empty > 0
+          ? `„${name}“: ${empty} Objekte ohne Geometrie (leer) nicht dargestellt.`
+          : projectionNote,
+    })
+  }
+  return layers
+}
+
 /** Import a file into app layers. Throws German, user-facing errors. */
 export async function importFile(file: File): Promise<ImportedLayer[]> {
   const kind = detectImportKind(file.name)
@@ -199,9 +302,12 @@ export async function importFile(file: File): Promise<ImportedLayer[]> {
       return loadGeoPackage(file)
     case 'geotiff':
       return loadGeoTiff(file)
+    case 'shapefile':
+      return loadShapefile(file)
     default:
       throw new Error(
-        'Dateiformat nicht unterstützt. Lade GeoJSON, GeoPackage (.gpkg) oder GeoTIFF (.tif).',
+        'Dateiformat nicht unterstützt. Lade GeoJSON, GeoPackage (.gpkg), ' +
+          'GeoTIFF (.tif) oder Shapefile (.zip).',
       )
   }
 }

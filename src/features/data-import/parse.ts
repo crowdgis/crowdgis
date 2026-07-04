@@ -1,6 +1,6 @@
 import type { Feature, FeatureCollection } from 'geojson'
 
-export type ImportKind = 'geojson' | 'gpkg' | 'geotiff'
+export type ImportKind = 'geojson' | 'gpkg' | 'geotiff' | 'shapefile'
 
 const EXTENSION_KINDS: Record<string, ImportKind> = {
   geojson: 'geojson',
@@ -8,6 +8,7 @@ const EXTENSION_KINDS: Record<string, ImportKind> = {
   gpkg: 'gpkg',
   tif: 'geotiff',
   tiff: 'geotiff',
+  zip: 'shapefile',
 }
 
 export const ACCEPTED_EXTENSIONS = Object.keys(EXTENSION_KINDS).map(

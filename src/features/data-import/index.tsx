@@ -57,7 +57,7 @@ function ImportPanel() {
         {busy ? 'Lädt …' : 'Daten laden'}
       </button>
       <p className="mt-1.5 text-xs text-stone">
-        GeoJSON, GeoPackage (.gpkg) oder GeoTIFF (.tif)
+        GeoJSON, GeoPackage (.gpkg), GeoTIFF (.tif) oder Shapefile (.zip)
       </p>
       {error && (
         <p role="alert" className="mt-2 text-xs text-signal">
