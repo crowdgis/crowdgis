@@ -6,6 +6,8 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // SPIKE EXPERIMENT: serve ol unbundled to isolate a rolldown issue.
+  optimizeDeps: { exclude: ['ol'] },
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',

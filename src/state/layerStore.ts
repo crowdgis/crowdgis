@@ -13,6 +13,8 @@ export interface VectorLayerSource {
 export interface RasterLayerSource {
   kind: 'raster'
   georaster: GeoRasterData
+  /** Original file, so render engines can decode the GeoTIFF natively. */
+  blob?: Blob
 }
 
 export type LayerSource = VectorLayerSource | RasterLayerSource

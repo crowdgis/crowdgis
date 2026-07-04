@@ -184,7 +184,7 @@ async function loadGeoTiff(file: File): Promise<ImportedLayer[]> {
     {
       name: layerNameFromFilename(file.name),
       bounds: rasterBounds(georaster),
-      source: { kind: 'raster', georaster },
+      source: { kind: 'raster', georaster, blob: file },
     },
   ]
 }

@@ -1,20 +1,11 @@
-import { MapContainer, ScaleControl } from 'react-leaflet'
-import { features } from '../features/registry'
+import { OlMapSpike } from './ol/OlMapSpike'
 
-/** Initial view: Switzerland. */
-const INITIAL_CENTER: [number, number] = [46.8, 8.2]
-const INITIAL_ZOOM = 8
-
+/**
+ * SPIKE (branch spike/openlayers): the map is OpenLayers with a native
+ * EPSG:2056 view. Feature MapSlots are react-leaflet components and are
+ * intentionally NOT rendered here — the spike talks to the shared stores
+ * directly. See docs in OlMapSpike.tsx.
+ */
 export function MapView() {
-  return (
-    <MapContainer
-      center={INITIAL_CENTER}
-      zoom={INITIAL_ZOOM}
-      className="h-full w-full"
-      zoomControl
-    >
-      <ScaleControl position="bottomleft" metric imperial={false} />
-      {features.map((f) => (f.MapSlot ? <f.MapSlot key={f.id} /> : null))}
-    </MapContainer>
-  )
+  return <OlMapSpike />
 }
