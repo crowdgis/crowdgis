@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { bbox } from '@turf/turf'
 import type { Feature } from 'geojson'
 import { useLayerStore } from '../../state/layerStore'
 import type { FeatureModule } from '../types'
+import { applyFilter } from './filter'
 
 /** Cap rendered rows to keep the DOM responsive on large datasets. */
 const MAX_ROWS = 200
@@ -31,9 +32,15 @@ function AttributeTablePanel() {
   const close = useLayerStore((s) => s.setAttributeTableLayer)
   const requestZoom = useLayerStore((s) => s.requestZoom)
 
+  const [filterExpr, setFilterExpr] = useState('')
+
   const geojson = layer?.source.kind === 'vector' ? layer.source.geojson : null
   const features = useMemo(() => geojson?.features ?? [], [geojson])
   const columns = useMemo(() => collectColumns(features), [features])
+  const { features: filteredFeatures, error: filterError } = useMemo(
+    () => applyFilter(features, filterExpr),
+    [features, filterExpr],
+  )
 
   if (!layerId || !layer || layer.source.kind !== 'vector') return null
 
@@ -57,8 +64,10 @@ function AttributeTablePanel() {
         <h2 className="label-micro">Attributtabelle</h2>
         <span className="truncate text-sm text-black">{layer.name}</span>
         <span className="text-xs text-stone">
-          {features.length} {features.length === 1 ? 'Objekt' : 'Objekte'}
-          {features.length > MAX_ROWS && `, erste ${MAX_ROWS} angezeigt`}
+          {filterExpr.trim() && !filterError
+            ? `${filteredFeatures.length} von ${features.length} Objekten`
+            : `${features.length} ${features.length === 1 ? 'Objekt' : 'Objekte'}`}
+          {filteredFeatures.length > MAX_ROWS && `, erste ${MAX_ROWS} angezeigt`}
         </span>
         <button
           type="button"
@@ -68,6 +77,19 @@ function AttributeTablePanel() {
         >
           ✕
         </button>
+      </div>
+      <div className="flex items-center gap-2 border-b border-hairline px-3 py-1.5">
+        <input
+          type="text"
+          value={filterExpr}
+          onChange={(e) => setFilterExpr(e.target.value)}
+          placeholder="Filter, z. B. bewohner > 100 AND jahr = 2020"
+          aria-label="Attribute filtern"
+          className="w-full rounded-[3px] border border-hairline bg-paper px-2 py-1 font-mono text-xs text-black placeholder:text-stone"
+        />
+        {filterError && (
+          <span className="shrink-0 text-xs text-signal">{filterError}</span>
+        )}
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         <table className="w-full border-collapse text-xs">
@@ -87,7 +109,7 @@ function AttributeTablePanel() {
             </tr>
           </thead>
           <tbody>
-            {features.slice(0, MAX_ROWS).map((f, i) => (
+            {filteredFeatures.slice(0, MAX_ROWS).map((f, i) => (
               <tr
                 key={i}
                 onClick={() => zoomToFeature(f)}
