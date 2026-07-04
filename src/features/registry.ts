@@ -2,6 +2,7 @@ import type { FeatureModule } from './types'
 import attributeTable from './attribute-table'
 import basemaps from './basemaps'
 import buffer from './buffer'
+import chineseGlossary from './chinese-glossary'
 import coordinates from './coordinates'
 import dataImport from './data-import'
 import featureRequests from './feature-requests'
@@ -27,4 +28,5 @@ export const features: FeatureModule[] = [
   basemaps,
   coordinates,
   featureRequests,
+  chineseGlossary,
 ]
