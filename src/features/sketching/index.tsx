@@ -171,8 +171,6 @@ function SketchPanel() {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="label-micro">Skizzieren</h2>
-
       <div>
         <p className="mb-1 text-xs text-stone">Farbe &amp; Linienstärke (neue Objekte)</p>
         <StyleFields style={presetStyle} onChange={setPresetStyle} />

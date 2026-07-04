@@ -39,7 +39,6 @@ function ImportPanel() {
 
   return (
     <section>
-      <h2 className="label-micro mb-2">Daten</h2>
       <input
         ref={inputRef}
         type="file"
