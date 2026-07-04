@@ -28,6 +28,9 @@ src/features/<kebab-case-id>/
   goes through the shared stores in `src/state/`.
 - To activate a feature, add exactly one import + array entry in
   `src/features/registry.ts`. That is the only core file you may edit.
+- You MAY add a runtime dependency with `npm install <package>` when the
+  feature genuinely needs one. Prefer small, popular, well-maintained
+  libraries; never replace or remove existing dependencies.
 - Never modify other features, `src/App.tsx`, `src/map/MapView.tsx`,
   build config, CI workflows, or anything under `.github/` or `api/`.
 - Shared logic belongs in `src/lib/` only if at least two features need it.
