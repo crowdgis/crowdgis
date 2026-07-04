@@ -52,7 +52,8 @@ jobs:
             ROLE: Implementation agent for CrowdGIS (CLAUDE.md is binding:
             feature module convention, scope limits, quality gates).
 
-            TASK: Implement the feature requested in issue #${{ github.event.issue.number }}.
+            TASK: Resolve issue #${{ github.event.issue.number }} — this may be a
+            NEW feature, or a BUGFIX / IMPROVEMENT to an existing feature.
 
             1. Read the issue and all comments with
                `gh issue view ${{ github.event.issue.number }} --comments`.
@@ -61,14 +62,20 @@ jobs:
                resolve the agent's clarification questions.
             2. Create and check out the branch exactly named
                `feature/issue-${{ github.event.issue.number }}`.
-            3. Implement the feature as a new module under `src/features/<id>/`
-               following CLAUDE.md, register it in `src/features/registry.ts`,
-               and write tests for it.
+            3. Decide the nature of the request and act accordingly:
+               - NEW feature → create a new module under `src/features/<id>/`,
+                 register it in `src/features/registry.ts`, and write tests.
+               - BUGFIX or IMPROVEMENT to an existing feature → find the
+                 responsible files (grep the codebase) and change them IN PLACE
+                 inside that feature's own folder. Do NOT create a new module or
+                 add a registry entry for a fix. Add or adjust tests that would
+                 have caught the bug.
+               Either way, stay strictly inside `src/features/` (plus the single
+               registry entry only when adding a new module).
             4. Run `npm run lint`, `npm run typecheck`, `npm test` and
                `npm run build` — all must pass; fix your code until they do.
             5. Commit with a descriptive English message and push the branch.
 
-            Stay strictly inside `src/features/` plus the single registry entry.
             Be economical with turns: plan first, avoid re-reading large files.
           # Test phase: Sonnet keeps cost low and handles the scoped feature
           # modules well. For maximum code quality later (e.g. on the ZHAW
