@@ -6,21 +6,31 @@ import { useMap } from 'react-leaflet'
 import type { Feature } from 'geojson'
 import { useSketchStore } from '../../state/sketchStore'
 import type { FeatureModule } from '../types'
+import {
+  useSketchToolStore,
+  sketchHooks,
+} from './sketchToolStore'
+import {
+  bindLayerInteractions,
+  createTextLabel,
+  initializeCreatedLayer,
+  readFeatures,
+  applyStyleToLayer,
+  type LabelMode,
+  type SketchLayer,
+} from './layers'
+import { canRedo, canUndo } from './history'
+import { exportMapAsPng, type PngExportMode } from './png-export'
+import type { SketchStyle } from './style'
 
-/** Serialize all Geoman draw layers into the sketch store. */
-function syncSketches(map: L.Map) {
-  const features: Feature[] = map.pm
-    .getGeomanDrawLayers()
-    .map((layer) => (layer as L.Layer & { toGeoJSON: () => Feature }).toGeoJSON())
-  useSketchStore.getState().setFeatures(features)
-}
-
-/** Mounts the Geoman toolbar and mirrors sketches into the store. */
+/** Mounts the Geoman toolbar and mirrors sketches into the shared store. */
 function SketchControls() {
   const map = useMap()
   const clearToken = useSketchStore((s) => s.clearToken)
+  const presetStyle = useSketchToolStore((s) => s.presetStyle)
 
   useEffect(() => {
+    useSketchToolStore.getState().setMap(map)
     map.pm.setLang('de')
     map.pm.addControls({
       position: 'topleft',
@@ -34,31 +44,53 @@ function SketchControls() {
       rotateMode: false,
       cutPolygon: false,
     })
-    map.pm.setGlobalOptions({
-      pathOptions: { color: '#870010', weight: 2, fillOpacity: 0.1 },
-    })
 
-    const sync = () => syncSketches(map)
-    map.on('pm:create', (e) => {
-      e.layer.on('pm:update', sync)
-      e.layer.on('pm:dragend', sync)
-      sync()
-    })
-    map.on('pm:remove', sync)
+    const handleCreate = (e: { layer: SketchLayer }) => {
+      const hooks = sketchHooks()
+      initializeCreatedLayer(e.layer, hooks)
+      bindLayerInteractions(map, e.layer, hooks)
+      hooks.onChange(readFeatures(map))
+    }
+    const handleRemove = (e: { layer: SketchLayer }) => {
+      if (useSketchToolStore.getState().selected?.layer === e.layer) {
+        useSketchToolStore.getState().clearSelection()
+      }
+      sketchHooks().onChange(readFeatures(map))
+    }
+    const handleMapClick = (e: { latlng: L.LatLng }) => {
+      if (useSketchToolStore.getState().labelMode !== 'free') return
+      const text = window.prompt('Text der Beschriftung:')
+      if (!text || !text.trim()) return
+      createTextLabel(map, e.latlng, text.trim(), sketchHooks())
+      sketchHooks().onChange(readFeatures(map))
+    }
+
+    map.on('pm:create', handleCreate)
+    map.on('pm:remove', handleRemove)
+    map.on('click', handleMapClick)
 
     return () => {
-      map.off('pm:create')
-      map.off('pm:remove')
+      map.off('pm:create', handleCreate)
+      map.off('pm:remove', handleRemove)
+      map.off('click', handleMapClick)
       map.pm.removeControls()
+      useSketchToolStore.getState().setMap(null)
     }
   }, [map])
+
+  useEffect(() => {
+    map.pm.setGlobalOptions({
+      pathOptions: { color: presetStyle.color, weight: presetStyle.weight, fillOpacity: 0.1 },
+    })
+  }, [map, presetStyle])
 
   useEffect(() => {
     if (clearToken > 0) {
       for (const layer of map.pm.getGeomanDrawLayers()) {
         layer.remove()
       }
-      syncSketches(map)
+      useSketchToolStore.getState().clearSelection()
+      sketchHooks().onChange(readFeatures(map))
     }
   }, [clearToken, map])
 
@@ -79,14 +111,128 @@ function downloadSketches(features: Feature[]) {
   URL.revokeObjectURL(url)
 }
 
-/** Sidebar section: sketch summary, export and clear. */
+const LABEL_MODE_BUTTONS: { mode: LabelMode; label: string }[] = [
+  { mode: 'free', label: 'Textmarker setzen' },
+  { mode: 'attach', label: 'Beschriftung anhängen' },
+]
+
+/** Small color + line-width form, shared by the preset and per-object editors. */
+function StyleFields({
+  style,
+  onChange,
+}: {
+  style: SketchStyle
+  onChange: (style: SketchStyle) => void
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="color"
+        value={style.color}
+        onChange={(e) => onChange({ ...style, color: e.target.value })}
+        className="h-7 w-9 cursor-pointer rounded-[3px] border border-hairline"
+        aria-label="Farbe"
+      />
+      <input
+        type="range"
+        min={1}
+        max={10}
+        value={style.weight}
+        onChange={(e) => onChange({ ...style, weight: Number(e.target.value) })}
+        className="flex-1"
+        aria-label="Linienstärke"
+      />
+      <span className="w-4 text-right font-mono text-xs text-stone">{style.weight}</span>
+    </div>
+  )
+}
+
+/** Sidebar section: style presets, labels, undo/redo, export and clear. */
 function SketchPanel() {
   const features = useSketchStore((s) => s.features)
   const requestClear = useSketchStore((s) => s.requestClear)
+  const map = useSketchToolStore((s) => s.map)
+  const presetStyle = useSketchToolStore((s) => s.presetStyle)
+  const setPresetStyle = useSketchToolStore((s) => s.setPresetStyle)
+  const labelMode = useSketchToolStore((s) => s.labelMode)
+  const setLabelMode = useSketchToolStore((s) => s.setLabelMode)
+  const selected = useSketchToolStore((s) => s.selected)
+  const clearSelection = useSketchToolStore((s) => s.clearSelection)
+  const historyState = useSketchToolStore((s) => s.history)
+  const requestUndo = useSketchToolStore((s) => s.requestUndo)
+  const requestRedo = useSketchToolStore((s) => s.requestRedo)
+
+  const applySelectedStyle = (style: SketchStyle) => {
+    if (!selected || !map) return
+    applyStyleToLayer(selected.layer, style)
+    useSketchToolStore.getState().select(selected.layer, style)
+    sketchHooks().onChange(readFeatures(map))
+  }
 
   return (
-    <section>
-      <h2 className="label-micro mb-2">Skizzen</h2>
+    <section className="flex flex-col gap-3">
+      <h2 className="label-micro">Skizzieren</h2>
+
+      <div>
+        <p className="mb-1 text-xs text-stone">Farbe &amp; Linienstärke (neue Objekte)</p>
+        <StyleFields style={presetStyle} onChange={setPresetStyle} />
+      </div>
+
+      {selected && (
+        <div className="rounded-[3px] border border-hairline p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-xs text-stone">Ausgewähltes Objekt</p>
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="text-xs text-stone hover:text-signal"
+            >
+              Fertig
+            </button>
+          </div>
+          <StyleFields style={selected.style} onChange={applySelectedStyle} />
+        </div>
+      )}
+
+      <div>
+        <p className="mb-1 text-xs text-stone">Textbeschriftungen</p>
+        <div className="flex gap-2">
+          {LABEL_MODE_BUTTONS.map(({ mode, label }) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setLabelMode(labelMode === mode ? 'none' : mode)}
+              className={`flex-1 rounded-[3px] border px-2 py-1.5 text-xs font-medium ${
+                labelMode === mode
+                  ? 'border-ink bg-ink text-white'
+                  : 'border-hairline text-stone hover:border-ink hover:text-ink'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={requestUndo}
+          disabled={!canUndo(historyState)}
+          className="flex-1 rounded-[3px] border border-hairline px-2 py-1.5 text-xs text-stone hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Rückgängig
+        </button>
+        <button
+          type="button"
+          onClick={requestRedo}
+          disabled={!canRedo(historyState)}
+          className="flex-1 rounded-[3px] border border-hairline px-2 py-1.5 text-xs text-stone hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Wiederholen
+        </button>
+      </div>
+
       {features.length === 0 ? (
         <p className="text-xs text-stone">
           Zeichne mit den Werkzeugen links oben auf der Karte.
@@ -112,6 +258,19 @@ function SketchPanel() {
             >
               Alle löschen
             </button>
+          </div>
+          <div className="flex gap-2">
+            {(['drawing', 'map'] as PngExportMode[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => map && exportMapAsPng(map, mode)}
+                disabled={!map}
+                className="flex-1 rounded-[3px] border border-hairline px-2 py-1.5 text-xs font-medium text-ink hover:border-ink disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {mode === 'drawing' ? 'PNG (nur Zeichnung)' : 'PNG (ganze Karte)'}
+              </button>
+            ))}
           </div>
         </div>
       )}
