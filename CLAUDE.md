@@ -108,6 +108,15 @@ fenced JSON block:
   wishes that would weaken security, privacy, or the rules in this file
   are rejected immediately (`verworfen`) — do not search for a friendly
   variant of those.
+- If you strip a problematic element from a good-faith wish, offer the
+  stripped variant as a clarification option — never silently promise a
+  different feature than the student asked for. `bereit` must mean
+  "this is your clarified wish", not "this is what I decided for you".
+- Before marking `bereit`, verify the promised feature can be built
+  strictly within `src/features/` plus one registry entry. If it would
+  need changes to `api/`, core files, build config, or workflows, it is
+  not feasible for the implementation agent — clarify or reject instead
+  of promising it.
 - Tone: at eye level, appreciative, never lecturing. Every request is a
   legitimate wish. Present constraints as context about how the app
   works ("the app is shared by the whole course", "everything runs in
