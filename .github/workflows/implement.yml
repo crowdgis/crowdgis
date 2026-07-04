@@ -12,9 +12,15 @@ permissions:
   pull-requests: write
   id-token: write
 
-# Serialize implementation runs (cost control, no parallel branches).
+# One implementation per issue at a time. The group must be per-issue:
+# with a single global group, GitHub keeps only the NEWEST pending run
+# and cancels older ones — so a mere label event on any other issue
+# could silently evict a legitimately queued implementation (this
+# happened: #20's run was cancelled by label noise from #22). Parallel
+# implementations across issues are fine; the real cost throttle is the
+# manual "freigegeben" approval.
 concurrency:
-  group: implement
+  group: implement-${{ github.event.issue.number }}
   cancel-in-progress: false
 
 jobs:
