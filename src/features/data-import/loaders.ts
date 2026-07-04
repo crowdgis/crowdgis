@@ -1,4 +1,4 @@
-import type { Feature, FeatureCollection, Geometry } from 'geojson'
+import type { Feature, FeatureCollection } from 'geojson'
 import type { ImportedLayer } from '../../state/layerStore'
 import {
   isSupportedRasterProjection,
@@ -7,6 +7,7 @@ import {
   reprojectGeometryToWgs84,
   vectorBounds,
 } from '../../lib/geo'
+import { parseGpkgGeometry } from '../../lib/gpkg-wkb'
 import {
   detectImportKind,
   layerNameFromFilename,
@@ -62,15 +63,22 @@ async function loadGeoPackage(file: File): Promise<ImportedLayer[]> {
   }
 }
 
+/** Arc flattening tolerance in CRS units (meters vs. degrees). */
+function arcToleranceForEpsg(epsg: number): number {
+  return epsg === 4326 ? 5e-7 : 0.05
+}
+
 /**
  * Read one GeoPackage feature table in its NATIVE CRS and reproject it to
- * WGS84 ourselves. The library's in-browser reprojection is wrong for Swiss
- * CRS, so we read raw coordinates via the feature DAO and use our verified
- * proj4 defs. Features whose geometry the library cannot parse (e.g. curve
- * geometries / CurvePolygon) are counted and surfaced rather than dropped
- * silently.
+ * WGS84 ourselves (the library's in-browser reprojection is wrong for
+ * Swiss CRS). Geometries are decoded with our own WKB parser, which also
+ * handles curve types the library cannot read.
+ *
+ * COMPLETENESS GUARANTEE: if any geometry cannot be decoded, the whole
+ * import fails loudly. We never display an incomplete dataset — partial
+ * data that looks complete is worse than an error.
  */
-// The GeoPackage types don't expose these row/geometry internals cleanly.
+// The GeoPackage types don't expose these row internals cleanly.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function readGpkgTable(
   geopackage: any,
@@ -87,44 +95,61 @@ function readGpkgTable(
         '(unterstützt: WGS84, Web Mercator, LV95, LV03).',
     )
   }
-  const geomColumn: string | undefined = dao.geometryColumns?.columnName
+  const geomColumn: string =
+    dao.getGeometryColumnName?.() ?? dao.geometryColumns?.columnName ?? 'geom'
+  const tolerance = arcToleranceForEpsg(epsg)
 
   const features: Feature[] = []
-  let skipped = 0
+  let unreadable = 0
+  let empty = 0
+  let total = 0
   for (const raw of dao.queryForEach()) {
-    const row = dao.getRow(raw)
-    let native: Geometry | undefined
-    try {
-      native = row.geometry?.geometry?.toGeoJSON?.() as Geometry | undefined
-    } catch {
-      native = undefined
+    total += 1
+    const record = raw as Record<string, unknown>
+    const blob = record[geomColumn]
+    if (blob == null) {
+      empty += 1
+      continue
     }
-    if (!native) {
-      skipped += 1
+    if (!(blob instanceof Uint8Array)) {
+      unreadable += 1
+      continue
+    }
+    let geometry
+    try {
+      geometry = parseGpkgGeometry(blob, tolerance)
+    } catch {
+      unreadable += 1
+      continue
+    }
+    if (!geometry) {
+      empty += 1 // explicitly empty geometry
       continue
     }
     const properties: Record<string, unknown> = {}
-    const values = row.values as Record<string, unknown>
-    for (const key of Object.keys(values)) {
-      const value = values[key]
+    for (const key of Object.keys(record)) {
+      const value = record[key]
       if (key !== geomColumn && !(value instanceof Uint8Array)) {
         properties[key] = value
       }
     }
     features.push({
       type: 'Feature',
-      geometry: reprojectGeometryToWgs84(native, epsg),
+      geometry: reprojectGeometryToWgs84(geometry, epsg),
       properties,
     })
   }
 
-  if (features.length === 0) {
+  // Fail closed: incomplete data must never be shown as if it were complete.
+  if (unreadable > 0) {
     throw new Error(
-      `Die Tabelle „${table}“ enthält keine lesbaren Geometrien` +
-        (skipped > 0
-          ? ` (${skipped} nicht unterstützte Kurven-Geometrien).`
-          : '.'),
+      `Import abgebrochen: ${unreadable} von ${total} Objekten in „${table}“ ` +
+        'konnten nicht gelesen werden. Es werden keine unvollständigen Daten angezeigt. ' +
+        'Bitte melde dieses Problem als Feature-Wunsch mit Angabe der Datei.',
     )
+  }
+  if (features.length === 0) {
+    throw new Error(`Die Tabelle „${table}“ enthält keine Geometrien.`)
   }
 
   const geojson: FeatureCollection = { type: 'FeatureCollection', features }
@@ -133,9 +158,8 @@ function readGpkgTable(
     bounds: vectorBounds(geojson),
     source: { kind: 'vector', geojson },
     note:
-      skipped > 0
-        ? `„${name}“: ${skipped} von ${skipped + features.length} Objekten übersprungen ` +
-          '(Kurven-Geometrie wird nicht unterstützt).'
+      empty > 0
+        ? `„${name}“: ${empty} Objekte ohne Geometrie (leer) nicht dargestellt.`
         : undefined,
   }
 }
