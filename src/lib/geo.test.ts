@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FeatureCollection } from 'geojson'
-import type { GeoRasterData } from 'georaster'
-import { rasterBounds, vectorBounds } from './geo'
+import { rasterBounds, vectorBounds, type RasterExtent } from './geo'
 
 const points: FeatureCollection = {
   type: 'FeatureCollection',
@@ -32,15 +31,8 @@ describe('vectorBounds', () => {
   })
 })
 
-function fakeRaster(partial: Partial<GeoRasterData>): GeoRasterData {
+function fakeRaster(partial: Partial<RasterExtent>): RasterExtent {
   return {
-    width: 10,
-    height: 10,
-    pixelWidth: 1,
-    pixelHeight: 1,
-    numberOfRasters: 1,
-    noDataValue: null,
-    values: [],
     xmin: 0,
     xmax: 1,
     ymin: 0,

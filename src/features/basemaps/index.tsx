@@ -1,20 +1,24 @@
-import { TileLayer } from 'react-leaflet'
+import { useEffect } from 'react'
+import { useOlMap } from '../../map/OlMap'
 import { useMapStore } from '../../state/mapStore'
 import type { FeatureModule } from '../types'
-import { BASEMAPS, getBasemap } from './basemaps'
+import { BASEMAPS, makeBasemapLayer } from './basemaps'
 
-/** Renders the currently selected basemap as the bottom tile layer. */
+/** Keeps the selected basemap mounted as the bottom map layer. */
 function BasemapLayer() {
+  const map = useOlMap()
   const basemapId = useMapStore((s) => s.basemapId)
-  const basemap = getBasemap(basemapId)
-  return (
-    <TileLayer
-      key={basemap.id}
-      url={basemap.url}
-      attribution={basemap.attribution}
-      maxZoom={basemap.maxZoom}
-    />
-  )
+
+  useEffect(() => {
+    const layer = makeBasemapLayer(basemapId)
+    layer.setZIndex(0)
+    map.addLayer(layer)
+    return () => {
+      map.removeLayer(layer)
+    }
+  }, [map, basemapId])
+
+  return null
 }
 
 /** Dropdown to switch between the available basemaps. */

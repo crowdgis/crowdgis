@@ -167,24 +167,36 @@ async function loadGeoTiff(file: File): Promise<ImportedLayer[]> {
       'Rasterdateien über 100 MB können im Browser nicht dargestellt werden.',
     )
   }
-  const { default: parseGeoraster } = await import('georaster')
-  let georaster
+  // Only bounds + CRS are read here; the map decodes the file natively
+  // via ol/source/GeoTIFF from the stored blob.
+  let projection: number
+  let extent: [number, number, number, number]
   try {
-    georaster = await parseGeoraster(await file.arrayBuffer())
+    const { fromArrayBuffer } = await import('geotiff')
+    const tiff = await fromArrayBuffer(await file.arrayBuffer())
+    const image = await tiff.getImage()
+    extent = image.getBoundingBox() as [number, number, number, number]
+    const geoKeys = (image.getGeoKeys() ?? {}) as {
+      ProjectedCSTypeGeoKey?: number
+      GeographicTypeGeoKey?: number
+    }
+    projection =
+      geoKeys.ProjectedCSTypeGeoKey ?? geoKeys.GeographicTypeGeoKey ?? 0
   } catch {
     throw new Error('Die Datei konnte nicht als GeoTIFF gelesen werden.')
   }
-  if (!isSupportedRasterProjection(georaster.projection)) {
+  if (!isSupportedRasterProjection(projection)) {
     throw new Error(
-      `Koordinatensystem EPSG:${georaster.projection} wird nicht unterstützt ` +
+      `Koordinatensystem EPSG:${projection} wird nicht unterstützt ` +
         '(unterstützt: WGS84, Web Mercator, LV95).',
     )
   }
+  const [xmin, ymin, xmax, ymax] = extent
   return [
     {
       name: layerNameFromFilename(file.name),
-      bounds: rasterBounds(georaster),
-      source: { kind: 'raster', georaster },
+      bounds: rasterBounds({ xmin, ymin, xmax, ymax, projection }),
+      source: { kind: 'raster', blob: file },
     },
   ]
 }
