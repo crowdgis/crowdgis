@@ -4,7 +4,6 @@ import chineseGlossaryFeature from './index'
 import { GLOSSARY, GLOSSARY_MAP } from './glossary'
 
 const Panel = chineseGlossaryFeature.SidebarPanel!
-const Tooltip = chineseGlossaryFeature.Overlay!
 
 describe('glossary data', () => {
   it('has a unique, non-empty Chinese explanation for every German term', () => {
@@ -39,49 +38,8 @@ describe('GlossaryPanel', () => {
     })
     expect(screen.getByText('Keine Treffer.')).toBeInTheDocument()
   })
-})
 
-describe('GlossaryTooltip', () => {
-  it('shows the Chinese explanation when hovering a known button', () => {
-    render(
-      <div>
-        <button type="button" title="Puffer erstellen">
-          Puffer erstellen
-        </button>
-        <Tooltip />
-      </div>,
-    )
-
-    fireEvent.mouseMove(screen.getByRole('button'), { clientX: 10, clientY: 10 })
-    expect(screen.getByRole('tooltip')).toHaveTextContent('创建缓冲区')
-  })
-
-  it('renders nothing while hovering unknown elements', () => {
-    render(
-      <div>
-        <button type="button">Ein unbekannter Text</button>
-        <Tooltip />
-      </div>,
-    )
-
-    fireEvent.mouseMove(screen.getByRole('button'), { clientX: 10, clientY: 10 })
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
-  })
-
-  it('clears the tooltip once the pointer leaves the document', () => {
-    render(
-      <div>
-        <button type="button" title="Puffer erstellen">
-          Puffer erstellen
-        </button>
-        <Tooltip />
-      </div>,
-    )
-
-    fireEvent.mouseMove(screen.getByRole('button'), { clientX: 10, clientY: 10 })
-    expect(screen.getByRole('tooltip')).toBeInTheDocument()
-
-    fireEvent.mouseLeave(document)
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  it('does not expose an Overlay slot, so no Chinese text leaks outside this panel', () => {
+    expect(chineseGlossaryFeature.Overlay).toBeUndefined()
   })
 })

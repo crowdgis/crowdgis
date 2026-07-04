@@ -1,9 +1,6 @@
 /**
- * German UI terms and their Chinese explanations.
- *
- * `de` must match the exact string a user sees or hovers in the app
- * (button/label text, `title`, or `aria-label`) so that the hover
- * tooltip (see `useGlossaryHover.ts`) can look it up.
+ * German UI terms and their Chinese explanations, shown only inside the
+ * glossary sidebar panel (see `GlossaryPanel.tsx`).
  */
 export interface GlossaryEntry {
   de: string
