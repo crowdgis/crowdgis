@@ -96,7 +96,7 @@ jobs:
           claude_args: |
             --model sonnet
             --max-turns 100
-            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git fetch:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm run test:e2e),Bash(npm ci),Bash(npm install:*)"
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git fetch:*),Bash(git merge:*),Bash(git add:*),Bash(git rm:*),Bash(git restore:*),Bash(git reset:*),Bash(git stash:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git rev-parse:*),Bash(git branch:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(npm run lint:*),Bash(npm run typecheck:*),Bash(npm test:*),Bash(npm run build:*),Bash(npm run test:e2e:*),Bash(npm ci:*),Bash(npm install:*),Bash(npx vitest:*),Bash(npx playwright:*)"
 
       - name: Repair attempt (self-heal, max 1 retry)
         # Automatic repair layer: when the first agent run fails (e.g. ran
@@ -133,7 +133,7 @@ jobs:
           claude_args: |
             --model sonnet
             --max-turns 100
-            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git fetch:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm run test:e2e),Bash(npm ci),Bash(npm install:*)"
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git fetch:*),Bash(git merge:*),Bash(git add:*),Bash(git rm:*),Bash(git restore:*),Bash(git reset:*),Bash(git stash:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git rev-parse:*),Bash(git branch:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(npm run lint:*),Bash(npm run typecheck:*),Bash(npm test:*),Bash(npm run build:*),Bash(npm run test:e2e:*),Bash(npm ci:*),Bash(npm install:*),Bash(npx vitest:*),Bash(npx playwright:*)"
 
       - name: Push agent work (deterministic delivery)
         # The agent sometimes finishes without a successful push (observed
