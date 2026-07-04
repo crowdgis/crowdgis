@@ -20,8 +20,10 @@ export interface FeatureModule {
    */
   icon?: string
   /**
-   * Rendered inside the Leaflet map context (react-leaflet children).
-   * Use for layers, controls and map event handlers.
+   * Rendered inside the map container. Access the OpenLayers map with
+   * `useOlMap()` from `src/map/OlMap`; the view runs in EPSG:2056 while
+   * store data stays WGS84 GeoJSON (helpers: `src/lib/ol-geojson.ts`).
+   * Absolutely positioned children overlay the map (tool UIs).
    */
   MapSlot?: ComponentType
   /**

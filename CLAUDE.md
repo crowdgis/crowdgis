@@ -6,7 +6,11 @@ them. This file is binding for every automated run.
 
 ## What this app is
 
-- React 19 + TypeScript (strict) + Vite + Tailwind, Leaflet via react-leaflet.
+- React 19 + TypeScript (strict) + Vite + Tailwind, **OpenLayers** map.
+- The map view runs natively in **EPSG:2056 (Swiss LV95)**; store data is
+  always WGS84 GeoJSON. In a `MapSlot`, get the map with `useOlMap()`
+  from `src/map/OlMap` and convert store data with the helpers in
+  `src/lib/ol-geojson.ts` (`readFeaturesWgs84` / `writeFeaturesWgs84`).
 - State: zustand (`src/state/mapStore.ts` for shared map state).
 - Swiss context: LV95 helpers in `src/lib/crs.ts` (proj4, EPSG:2056).
 - Everything runs client-side. There is no backend for GIS functionality.

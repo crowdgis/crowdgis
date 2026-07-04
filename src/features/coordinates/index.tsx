@@ -1,15 +1,34 @@
-import { useMapEvents } from 'react-leaflet'
+import { useEffect } from 'react'
+import { toLonLat } from 'ol/proj'
+import type { MapBrowserEvent } from 'ol'
+import { useOlMap } from '../../map/OlMap'
+import { VIEW_PROJECTION } from '../../lib/ol-geojson'
 import { useMapStore } from '../../state/mapStore'
 import type { FeatureModule } from '../types'
 import { formatLv95, formatWgs84 } from './format'
 
 /** Invisible map child that tracks the mouse position in the store. */
 function MouseTracker() {
+  const map = useOlMap()
   const setMousePosition = useMapStore((s) => s.setMousePosition)
-  useMapEvents({
-    mousemove: (e) => setMousePosition({ lat: e.latlng.lat, lng: e.latlng.lng }),
-    mouseout: () => setMousePosition(null),
-  })
+
+  useEffect(() => {
+    const move = (e: MapBrowserEvent) => {
+      if (e.dragging) return
+      const [lng, lat] = toLonLat(e.coordinate, VIEW_PROJECTION)
+      setMousePosition({ lat, lng })
+    }
+    const leave = () => setMousePosition(null)
+    map.on('pointermove', move)
+    const viewport = map.getViewport()
+    viewport.addEventListener('mouseleave', leave)
+    return () => {
+      map.un('pointermove', move)
+      viewport.removeEventListener('mouseleave', leave)
+      setMousePosition(null)
+    }
+  }, [map, setMousePosition])
+
   return null
 }
 

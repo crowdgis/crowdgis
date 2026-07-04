@@ -1,11 +1,10 @@
-import { OlMapSpike } from './ol/OlMapSpike'
+import { features } from '../features/registry'
+import { OlMap } from './OlMap'
 
-/**
- * SPIKE (branch spike/openlayers): the map is OpenLayers with a native
- * EPSG:2056 view. Feature MapSlots are react-leaflet components and are
- * intentionally NOT rendered here — the spike talks to the shared stores
- * directly. See docs in OlMapSpike.tsx.
- */
 export function MapView() {
-  return <OlMapSpike />
+  return (
+    <OlMap>
+      {features.map((f) => (f.MapSlot ? <f.MapSlot key={f.id} /> : null))}
+    </OlMap>
+  )
 }

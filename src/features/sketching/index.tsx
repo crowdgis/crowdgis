@@ -1,68 +1,106 @@
-import '../../lib/leaflet-setup'
-import '@geoman-io/leaflet-geoman-free'
-import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
-import { useEffect } from 'react'
-import { useMap } from 'react-leaflet'
+import { useEffect, useRef, useState } from 'react'
+import VectorLayer from 'ol/layer/Vector'
+import VectorSource from 'ol/source/Vector'
+import Draw, { createBox } from 'ol/interaction/Draw'
+import Style from 'ol/style/Style'
+import Stroke from 'ol/style/Stroke'
+import Fill from 'ol/style/Fill'
+import CircleStyle from 'ol/style/Circle'
 import type { Feature } from 'geojson'
+import { useOlMap } from '../../map/OlMap'
+import { writeFeaturesWgs84 } from '../../lib/ol-geojson'
 import { useSketchStore } from '../../state/sketchStore'
 import type { FeatureModule } from '../types'
 
-/** Serialize all Geoman draw layers into the sketch store. */
-function syncSketches(map: L.Map) {
-  const features: Feature[] = map.pm
-    .getGeomanDrawLayers()
-    .map((layer) => (layer as L.Layer & { toGeoJSON: () => Feature }).toGeoJSON())
-  useSketchStore.getState().setFeatures(features)
-}
+/** Landeskarte-red sketch style. */
+const SKETCH_STYLE = new Style({
+  stroke: new Stroke({ color: '#870010', width: 2 }),
+  fill: new Fill({ color: 'rgba(135, 0, 16, 0.1)' }),
+  image: new CircleStyle({
+    radius: 6,
+    stroke: new Stroke({ color: '#870010', width: 2 }),
+    fill: new Fill({ color: 'rgba(135, 0, 16, 0.4)' }),
+  }),
+})
 
-/** Mounts the Geoman toolbar and mirrors sketches into the store. */
-function SketchControls() {
-  const map = useMap()
+type SketchTool = 'Point' | 'LineString' | 'Polygon' | 'Box'
+
+const SKETCH_TOOLS: { tool: SketchTool; icon: string; label: string }[] = [
+  { tool: 'Point', icon: '●', label: 'Punkt zeichnen' },
+  { tool: 'LineString', icon: '╱', label: 'Linie zeichnen' },
+  { tool: 'Polygon', icon: '⬠', label: 'Fläche zeichnen' },
+  { tool: 'Box', icon: '▭', label: 'Rechteck zeichnen' },
+]
+
+/** Draw toolbar on the map + interactions, mirrored into the store. */
+function SketchTools() {
+  const map = useOlMap()
   const clearToken = useSketchStore((s) => s.clearToken)
+  const [activeTool, setActiveTool] = useState<SketchTool | null>(null)
+  const sourceRef = useRef<VectorSource | null>(null)
+  if (!sourceRef.current) sourceRef.current = new VectorSource()
+  const source = sourceRef.current
 
+  // Sketch layer on the map; every source change syncs WGS84 GeoJSON
+  // into the store (measure panel and sketch list update live).
   useEffect(() => {
-    map.pm.setLang('de')
-    map.pm.addControls({
-      position: 'topleft',
-      drawMarker: true,
-      drawPolyline: true,
-      drawPolygon: true,
-      drawRectangle: true,
-      drawCircle: false,
-      drawCircleMarker: false,
-      drawText: false,
-      rotateMode: false,
-      cutPolygon: false,
-    })
-    map.pm.setGlobalOptions({
-      pathOptions: { color: '#870010', weight: 2, fillOpacity: 0.1 },
-    })
-
-    const sync = () => syncSketches(map)
-    map.on('pm:create', (e) => {
-      e.layer.on('pm:update', sync)
-      e.layer.on('pm:dragend', sync)
-      sync()
-    })
-    map.on('pm:remove', sync)
-
-    return () => {
-      map.off('pm:create')
-      map.off('pm:remove')
-      map.pm.removeControls()
+    const layer = new VectorLayer({ source, style: SKETCH_STYLE, zIndex: 100 })
+    map.addLayer(layer)
+    const sync = () => {
+      const fc = writeFeaturesWgs84(source.getFeatures())
+      useSketchStore.getState().setFeatures(fc.features as Feature[])
     }
-  }, [map])
+    source.on(['addfeature', 'removefeature', 'changefeature'], sync)
+    return () => {
+      source.un(['addfeature', 'removefeature', 'changefeature'], sync)
+      map.removeLayer(layer)
+    }
+  }, [map, source])
 
+  // Active tool → OL Draw interaction.
+  useEffect(() => {
+    if (!activeTool) return
+    const draw = new Draw({
+      source,
+      type: activeTool === 'Box' ? 'Circle' : activeTool,
+      geometryFunction: activeTool === 'Box' ? createBox() : undefined,
+      style: SKETCH_STYLE,
+    })
+    map.addInteraction(draw)
+    return () => {
+      map.removeInteraction(draw)
+    }
+  }, [map, source, activeTool])
+
+  // "Alle löschen" from the sidebar panel.
   useEffect(() => {
     if (clearToken > 0) {
-      for (const layer of map.pm.getGeomanDrawLayers()) {
-        layer.remove()
-      }
-      syncSketches(map)
+      source.clear()
+      useSketchStore.getState().setFeatures([])
     }
-  }, [clearToken, map])
+  }, [clearToken, source])
 
-  return null
+  return (
+    <div className="absolute top-20 left-2 z-10 flex flex-col gap-1">
+      {SKETCH_TOOLS.map(({ tool, icon, label }) => (
+        <button
+          key={tool}
+          type="button"
+          title={label}
+          aria-label={label}
+          aria-pressed={activeTool === tool}
+          onClick={() => setActiveTool(activeTool === tool ? null : tool)}
+          className={`flex h-8 w-8 items-center justify-center rounded-[3px] border text-sm shadow-sm ${
+            activeTool === tool
+              ? 'border-signal bg-signal text-white'
+              : 'border-hairline bg-sheet text-stone hover:text-ink'
+          }`}
+        >
+          {icon}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 /** Download the current sketches as a GeoJSON file. */
@@ -121,7 +159,7 @@ function SketchPanel() {
 const sketchingFeature: FeatureModule = {
   id: 'sketching',
   label: 'Skizzieren',
-  MapSlot: SketchControls,
+  MapSlot: SketchTools,
   SidebarPanel: SketchPanel,
 }
 

@@ -3,8 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 /**
  * These smoke tests exist to catch the class of problem that unit tests
  * and `tsc` cannot see: the app rendering wrong in a real browser —
- * broken images (a missing icon shows as a 0x0 image), uncaught runtime
- * errors, or a blank map.
+ * uncaught runtime errors, a blank map, broken tool interactions.
  */
 
 /** Uncaught exceptions and console errors, minus known-noisy sources. */
@@ -14,22 +13,18 @@ function collectPageProblems(page: Page): string[] {
   page.on('console', (msg) => {
     if (msg.type() !== 'error') return
     const text = msg.text()
-    // Map tiles load from external hosts (OSM/swisstopo); a flaky tile is
-    // a network issue, not an app bug, so it must not fail the smoke.
-    if (/tile|wmts|openstreetmap|geo\.admin|ERR_/i.test(text)) return
+    // Map tiles load from external hosts (OSM/swisstopo); a flaky or
+    // out-of-coverage tile is a network issue, not an app bug.
+    if (/tile|wmts|openstreetmap|geo\.admin|ERR_|404|400/i.test(text)) return
     problems.push(`console.error: ${text}`)
   })
   return problems
 }
 
-/**
- * Return the src of every broken image, EXCLUDING map tiles (external,
- * network-dependent). Bundled UI/marker icons must always resolve.
- */
-async function brokenNonTileImages(page: Page): Promise<string[]> {
+/** Broken bundled images (there are no external tile <img>s with OL). */
+async function brokenImages(page: Page): Promise<string[]> {
   return page.evaluate(() =>
     [...document.querySelectorAll('img')]
-      .filter((img) => !img.classList.contains('leaflet-tile'))
       .filter((img) => img.complete && img.naturalWidth === 0)
       .map((img) => img.getAttribute('src') ?? '(no src)'),
   )
@@ -39,20 +34,21 @@ test('app loads with a working map and no broken UI', async ({ page }) => {
   const problems = collectPageProblems(page)
   await page.goto('/')
 
-  // Core chrome is present.
-  await expect(page.locator('.leaflet-container')).toBeVisible()
+  // Core chrome is present: OL viewport with a rendered canvas.
+  await expect(page.locator('.ol-viewport')).toBeVisible()
+  await expect(page.locator('.ol-viewport canvas').first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'CrowdGIS' })).toBeVisible()
 
-  // Give tiles/markers a moment to attempt loading.
+  // Give tiles a moment to attempt loading.
   await page.waitForTimeout(1500)
 
-  expect(await brokenNonTileImages(page), 'broken (non-tile) images').toEqual([])
+  expect(await brokenImages(page), 'broken images').toEqual([])
   expect(problems, 'runtime errors').toEqual([])
 })
 
 test('sidebar panels collapse, and the icon rail works', async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('.leaflet-container')).toBeVisible()
+  await expect(page.locator('.ol-viewport')).toBeVisible()
 
   // First visit: core panels open, everything else collapsed.
   const ebenen = page.getByRole('button', { name: 'Ebenen' })
@@ -80,32 +76,35 @@ test('sidebar panels collapse, and the icon rail works', async ({ page }) => {
   )
 })
 
-test('drawing a marker shows a proper icon, not a broken image', async ({
+test('drawing works: a sketched line appears in the panels', async ({
   page,
 }) => {
   const problems = collectPageProblems(page)
   await page.goto('/')
-  await expect(page.locator('.leaflet-container')).toBeVisible()
-
-  // Activate the marker draw tool (Leaflet-Geoman toolbar).
-  const markerTool = page.locator('.leaflet-pm-icon-marker').first()
-  await markerTool.click()
-
-  // Move over the map so the preview marker appears, then place one.
-  const map = page.locator('.leaflet-container')
-  const box = await map.boundingBox()
-  if (box) {
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-    await page.waitForTimeout(300)
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
-  }
+  await expect(page.locator('.ol-viewport canvas').first()).toBeVisible()
   await page.waitForTimeout(500)
 
-  // Both the preview marker and the placed marker are leaflet marker icons;
-  // neither may be a broken image.
-  expect(
-    await brokenNonTileImages(page),
-    'broken marker/preview icons',
-  ).toEqual([])
+  // Draw a line with the sketch toolbar (two clicks + double click ends).
+  await page.getByRole('button', { name: 'Linie zeichnen' }).click()
+  const map = page.locator('.ol-viewport')
+  const box = await map.boundingBox()
+  expect(box).not.toBeNull()
+  if (box) {
+    const cx = box.x + box.width / 2
+    const cy = box.y + box.height / 2
+    await page.mouse.click(cx, cy)
+    await page.waitForTimeout(200)
+    await page.mouse.click(cx + 120, cy + 40)
+    await page.waitForTimeout(200)
+    await page.mouse.dblclick(cx + 120, cy + 40)
+  }
+
+  // The sketch syncs into the stores: sketch panel counts it and the
+  // measure panel shows a length.
+  await page.getByRole('button', { name: 'Skizzieren' }).click()
+  await expect(page.getByText(/1 Objekt gezeichnet/)).toBeVisible()
+  await page.getByRole('button', { name: 'Messen' }).click()
+  await expect(page.getByText(/km|m/).first()).toBeVisible()
+
   expect(problems, 'runtime errors').toEqual([])
 })

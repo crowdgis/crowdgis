@@ -1,50 +1,97 @@
-import { useEffect } from 'react'
-import { GeoJSON, useMap } from 'react-leaflet'
-import { circleMarker } from 'leaflet'
+import { useEffect, useRef } from 'react'
+import VectorLayer from 'ol/layer/Vector'
+import VectorSource from 'ol/source/Vector'
+import WebGLTileLayer from 'ol/layer/WebGLTile'
+import GeoTIFFSource from 'ol/source/GeoTIFF'
+import { transformExtent } from 'ol/proj'
+import Style from 'ol/style/Style'
+import Stroke from 'ol/style/Stroke'
+import Fill from 'ol/style/Fill'
+import CircleStyle from 'ol/style/Circle'
+import type BaseLayer from 'ol/layer/Base'
+import { useOlMap } from '../../map/OlMap'
+import { readFeaturesWgs84, VIEW_PROJECTION } from '../../lib/ol-geojson'
 import { useLayerStore } from '../../state/layerStore'
 import type { FeatureModule } from '../types'
-import { RasterLayer } from './RasterLayer'
 
 /** Default vector style in brand ink. */
-const VECTOR_STYLE = {
-  color: '#2b336a',
-  weight: 2,
-  fillColor: '#2b336a',
-  fillOpacity: 0.15,
-}
+const VECTOR_STYLE = new Style({
+  stroke: new Stroke({ color: '#2b336a', width: 2 }),
+  fill: new Fill({ color: 'rgba(43, 51, 106, 0.15)' }),
+  image: new CircleStyle({
+    radius: 5,
+    stroke: new Stroke({ color: '#2b336a', width: 2 }),
+    fill: new Fill({ color: 'rgba(43, 51, 106, 0.6)' }),
+  }),
+})
 
 /** Renders all visible app layers and applies zoom requests. */
 function LayersOnMap() {
+  const map = useOlMap()
   const layers = useLayerStore((s) => s.layers)
   const zoomTarget = useLayerStore((s) => s.zoomTarget)
-  const map = useMap()
+  // GeoTIFF sources are expensive to create — cache them per layer id.
+  const rasterCache = useRef(new globalThis.Map<string, WebGLTileLayer>())
 
   useEffect(() => {
-    if (zoomTarget) {
-      map.fitBounds(zoomTarget.bounds, { padding: [24, 24], maxZoom: 17 })
-    }
-  }, [zoomTarget, map])
+    map
+      .getLayers()
+      .getArray()
+      .filter((l) => l.get('appLayer'))
+      .slice()
+      .forEach((l) => map.removeLayer(l))
 
-  return (
-    <>
-      {layers.map((layer) => {
-        if (!layer.visible) return null
-        if (layer.source.kind === 'vector') {
-          return (
-            <GeoJSON
-              key={layer.id}
-              data={layer.source.geojson}
-              style={() => VECTOR_STYLE}
-              pointToLayer={(_f, latlng) =>
-                circleMarker(latlng, { radius: 5, ...VECTOR_STYLE, fillOpacity: 0.6 })
-              }
-            />
-          )
+    layers.forEach((layer, i) => {
+      if (!layer.visible) return
+      let olLayer: BaseLayer | null = null
+      if (layer.source.kind === 'vector') {
+        olLayer = new VectorLayer({
+          source: new VectorSource({
+            features: readFeaturesWgs84(layer.source.geojson),
+          }),
+          style: VECTOR_STYLE,
+        })
+      } else {
+        let cached = rasterCache.current.get(layer.id)
+        if (!cached) {
+          cached = new WebGLTileLayer({
+            source: new GeoTIFFSource({
+              sources: [{ blob: layer.source.blob }],
+              convertToRGB: 'auto',
+            }),
+            opacity: 0.85,
+          })
+          rasterCache.current.set(layer.id, cached)
         }
-        return <RasterLayer key={layer.id} georaster={layer.source.georaster} />
-      })}
-    </>
-  )
+        olLayer = cached
+      }
+      olLayer.set('appLayer', true)
+      olLayer.setZIndex(1 + i)
+      map.addLayer(olLayer)
+    })
+
+    // Drop cached raster layers whose store layer was removed.
+    for (const id of rasterCache.current.keys()) {
+      if (!layers.some((l) => l.id === id)) rasterCache.current.delete(id)
+    }
+  }, [map, layers])
+
+  useEffect(() => {
+    if (!zoomTarget) return
+    const [[south, west], [north, east]] = zoomTarget.bounds
+    const extent = transformExtent(
+      [west, south, east, north],
+      'EPSG:4326',
+      VIEW_PROJECTION,
+    )
+    map.getView().fit(extent, {
+      padding: [24, 24, 24, 24],
+      maxZoom: 24,
+      duration: 200,
+    })
+  }, [map, zoomTarget])
+
+  return null
 }
 
 /** Sidebar section: list of loaded layers with visibility and actions. */

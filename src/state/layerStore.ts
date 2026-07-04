@@ -1,8 +1,7 @@
 import { create } from 'zustand'
 import type { FeatureCollection } from 'geojson'
-import type { GeoRasterData } from 'georaster'
 
-/** Leaflet-order bounds: [[south, west], [north, east]] in WGS84. */
+/** WGS84 bounds: [[south, west], [north, east]]. */
 export type LayerBounds = [[number, number], [number, number]]
 
 export interface VectorLayerSource {
@@ -12,9 +11,8 @@ export interface VectorLayerSource {
 
 export interface RasterLayerSource {
   kind: 'raster'
-  georaster: GeoRasterData
-  /** Original file, so render engines can decode the GeoTIFF natively. */
-  blob?: Blob
+  /** The original GeoTIFF file; the map decodes it natively. */
+  blob: Blob
 }
 
 export type LayerSource = VectorLayerSource | RasterLayerSource

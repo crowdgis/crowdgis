@@ -1,7 +1,6 @@
 import { bbox } from '@turf/turf'
 import proj4 from 'proj4'
 import type { Geometry, FeatureCollection, Position } from 'geojson'
-import type { GeoRasterData } from 'georaster'
 import type { LayerBounds } from '../state/layerStore'
 // Registers EPSG:2056 and EPSG:21781 with proj4 as a side effect.
 import './crs'
@@ -89,12 +88,22 @@ export function reprojectGeometryToWgs84(geom: Geometry, epsg: number): Geometry
   } as Geometry
 }
 
+/** Extent of a raster file in its own CRS. */
+export interface RasterExtent {
+  xmin: number
+  ymin: number
+  xmax: number
+  ymax: number
+  /** EPSG code of the raster's CRS. */
+  projection: number
+}
+
 /**
- * WGS84 bounds of a georaster. Transforms all four corners and takes the
- * envelope, which also covers slightly rotated projections like LV95.
+ * WGS84 bounds of a raster extent. Transforms all four corners and takes
+ * the envelope, which also covers slightly rotated projections like LV95.
  */
-export function rasterBounds(georaster: GeoRasterData): LayerBounds | null {
-  const { xmin, xmax, ymin, ymax, projection } = georaster
+export function rasterBounds(extent: RasterExtent): LayerBounds | null {
+  const { xmin, xmax, ymin, ymax, projection } = extent
   if (projection === 4326) {
     return [
       [ymin, xmin],
