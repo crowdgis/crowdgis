@@ -38,6 +38,24 @@ function textLabelIcon(text: string): L.DivIcon {
   })
 }
 
+/**
+ * A self-contained SVG pin, used in place of Leaflet's default marker icon.
+ * Leaflet's default icon references image files by a relative URL that our
+ * Vite build doesn't resolve, which renders as a broken-image placeholder.
+ */
+function markerIcon(): L.DivIcon {
+  return L.divIcon({
+    className: 'sketch-marker-icon',
+    html:
+      `<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">` +
+      `<path d="M12.5 0C5.6 0 0 5.6 0 12.5c0 9.4 12.5 28.5 12.5 28.5S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0z" fill="${DEFAULT_STYLE.color}"/>` +
+      `<circle cx="12.5" cy="12.5" r="5" fill="#fff"/>` +
+      `</svg>`,
+    iconSize: [25, 41],
+    iconAnchor: [12.5, 41],
+  })
+}
+
 function isPathLayer(layer: SketchLayer): layer is SketchLayer & L.Path {
   return layer instanceof L.Path
 }
@@ -119,7 +137,7 @@ export function createLayerFromFeature(feature: Feature): SketchLayer | null {
 
   const layers = L.geoJSON(feature, {
     style: () => styleOf(feature) ?? DEFAULT_STYLE,
-    pointToLayer: (_pointFeature, latlng) => L.marker(latlng),
+    pointToLayer: (_pointFeature, latlng) => L.marker(latlng, { icon: markerIcon() }),
   }).getLayers()
   const built = (layers[0] as SketchLayer | undefined) ?? null
 
@@ -147,6 +165,9 @@ export function rebuildLayers(map: L.Map, features: Feature[], hooks: SketchHook
 
 /** Applies the preset style to a layer freshly created via a Geoman draw tool. */
 export function initializeCreatedLayer(layer: SketchLayer, hooks: SketchHooks) {
+  if (layer instanceof L.Marker) {
+    layer.setIcon(markerIcon())
+  }
   const style = hooks.getPresetStyle()
   layer.feature = withProperties({ style })
   layer.setStyle?.(style)
