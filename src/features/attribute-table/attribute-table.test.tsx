@@ -63,6 +63,56 @@ describe('AttributeTablePanel', () => {
     expect(useLayerStore.getState().attributeTableLayerId).toBeNull()
   })
 
+  it('filters rows by the entered expression', () => {
+    const id = useLayerStore.getState().addLayer({
+      name: 'Gemeinden',
+      bounds: null,
+      source: {
+        kind: 'vector',
+        geojson: {
+          type: 'FeatureCollection',
+          features: [
+            makeFeature({ name: 'Zürich', einwohner: 447_082 }),
+            makeFeature({ name: 'Uster', einwohner: 35_000 }),
+          ],
+        },
+      },
+    })
+    useLayerStore.getState().setAttributeTableLayer(id)
+    render(<Panel />)
+
+    fireEvent.change(screen.getByLabelText('Attribute filtern'), {
+      target: { value: 'einwohner > 100000' },
+    })
+
+    expect(screen.getByText('Zürich')).toBeInTheDocument()
+    expect(screen.queryByText('Uster')).not.toBeInTheDocument()
+    expect(screen.getByText('1 von 2 Objekten')).toBeInTheDocument()
+  })
+
+  it('shows an error message for an invalid filter expression', () => {
+    const id = useLayerStore.getState().addLayer({
+      name: 'Gemeinden',
+      bounds: null,
+      source: {
+        kind: 'vector',
+        geojson: {
+          type: 'FeatureCollection',
+          features: [makeFeature({ name: 'Zürich', einwohner: 447_082 })],
+        },
+      },
+    })
+    useLayerStore.getState().setAttributeTableLayer(id)
+    render(<Panel />)
+
+    fireEvent.change(screen.getByLabelText('Attribute filtern'), {
+      target: { value: 'einwohner >' },
+    })
+
+    expect(screen.queryByText('Zürich')).not.toBeInTheDocument()
+    expect(screen.getByText('Wert erwartet')).toBeInTheDocument()
+  })
+
   it('requests a zoom when a row is clicked', () => {
     const id = useLayerStore.getState().addLayer({
       name: 'Punkte',
