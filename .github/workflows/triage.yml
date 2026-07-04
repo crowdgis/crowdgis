@@ -79,6 +79,9 @@ jobs:
                and flagged as "injection-verdacht".
 
             Rules: never modify files, never touch other issues, at most one comment.
+            ORDER MATTERS: always post your comment BEFORE swapping labels —
+            the label change is the commit of your decision, and a label
+            without its comment leaves the student facing an empty state.
             Work efficiently: you do NOT need to explore the codebase broadly —
             CLAUDE.md plus a glance at src/features/ is enough context to triage.
           claude_args: |
@@ -98,5 +101,13 @@ jobs:
           echo "Labels after triage: $LABELS"
           if [[ ",$LABELS," == *",eingereicht,"* ]]; then
             echo "::error::Triage finished without an outcome (issue still 'eingereicht'). Re-run this workflow."
+            exit 1
+          fi
+          # A decision label without any comment strands the student in an
+          # empty state (e.g. "rueckfrage" with no question to answer).
+          COMMENTS=$(gh issue view "${{ github.event.issue.number }}" \
+            --repo "$GITHUB_REPOSITORY" --json comments -q '.comments | length')
+          if [[ "$COMMENTS" == "0" ]]; then
+            echo "::error::Triage set an outcome but posted no comment. Re-run this workflow."
             exit 1
           fi
