@@ -115,6 +115,21 @@ jobs:
             --max-turns 100
             --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git fetch:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm ci),Bash(npm install:*)"
 
+      - name: Push agent work (deterministic delivery)
+        # The agent sometimes finishes without a successful push (observed
+        # with issue #10: agent reported success, branch never arrived).
+        # Delivery is a workflow responsibility: if the agent's local
+        # branch exists in this workspace, push it ourselves.
+        if: always() && steps.mark.outcome == 'success'
+        run: |
+          BRANCH="feature/issue-$ISSUE"
+          if git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+            echo "Lokaler Branch $BRANCH vorhanden — push."
+            git push origin "$BRANCH" && echo "✓ gepusht" || echo "Push fehlgeschlagen."
+          else
+            echo "Kein lokaler Branch $BRANCH im Workspace."
+          fi
+
       - name: Open pull request
         # Runs even when the agent step failed: if a branch was pushed we
         # still open the PR (CI judges it); otherwise the issue is reset
