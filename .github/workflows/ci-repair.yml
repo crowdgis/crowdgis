@@ -1,0 +1,81 @@
+name: CI Repair
+
+# Second stage of the self-heal layer: when CI turns red on an agent
+# feature branch, ONE repair agent fixes the branch. The budget marker
+# "[ci-repair]" in the commit message prevents repair loops — if a
+# repaired branch fails CI again, we stop and notify instead.
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: ci-repair-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      startsWith(github.event.workflow_run.head_branch, 'feature/issue-')
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Check repair budget (one attempt per branch)
+        id: budget
+        run: |
+          if git log --format=%B -3 | grep -q "\[ci-repair\]"; then
+            echo "spent=true" >> "$GITHUB_OUTPUT"
+            gh pr comment "$BRANCH" --repo "$GITHUB_REPOSITORY" --body \
+              "Die automatische CI-Reparatur wurde bereits versucht, die CI ist weiterhin rot. Bitte manuell prüfen oder das Feature erneut freigeben. (Automatischer Hinweis)" || true
+          else
+            echo "spent=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.budget.outputs.spent == 'false'
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+        if: steps.budget.outputs.spent == 'false'
+
+      - uses: anthropics/claude-code-action@v1
+        if: steps.budget.outputs.spent == 'false'
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            ROLE: CI repair agent for CrowdGIS (CLAUDE.md is binding:
+            feature module convention, scope limits).
+
+            The CI on branch `${{ github.event.workflow_run.head_branch }}`
+            is RED. You are already checked out on that branch. Fix it:
+
+            1. Run the gates locally to see what fails:
+               `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+            2. Make the MINIMAL fixes needed to turn them green. Stay within
+               the feature's own files (src/features/<id>/ plus its registry
+               entry). Do not redesign the feature.
+            3. Re-run all gates until everything passes.
+            4. Commit with an English message that ENDS with the marker
+               "[ci-repair]" (this bounds automatic repairs to one attempt),
+               then push the branch.
+
+            Be economical with turns; fix causes, not symptoms.
+          claude_args: |
+            --model sonnet
+            --max-turns 60
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm ci),Bash(npm install:*)"
