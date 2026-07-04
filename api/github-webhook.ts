@@ -112,10 +112,13 @@ export async function POST(request: Request): Promise<Response> {
   const issue = body.issue
   if (!issue) return json({ ok: true, skipped: 'no issue' })
 
-  const email = await kv.get<string>(emailKey(issue.number))
-  // Mail links carry the per-issue answer key so the submitter can act
-  // from any device; the app stores it locally (see feature-requests/keys.ts).
-  const answerKey = await kv.get<string>(answerKeyKey(issue.number))
+  // One round-trip for both private lookups. The answer key rides along in
+  // mail links so the submitter can act from any device; the app stores it
+  // locally (see feature-requests/keys.ts).
+  const [email, answerKey] = await kv.mget<(string | null)[]>(
+    emailKey(issue.number),
+    answerKeyKey(issue.number),
+  )
   const link = answerKey
     ? `${appBaseUrl()}/?request=${issue.number}&key=${answerKey}`
     : `${appBaseUrl()}/?request=${issue.number}`

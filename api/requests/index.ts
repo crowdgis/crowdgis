@@ -40,9 +40,6 @@ export async function GET(): Promise<Response> {
 
 /** POST /api/requests — validate and hold pending until e-mail confirm. */
 export async function POST(request: Request): Promise<Response> {
-  const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-
   let payload: SubmitPayload
   try {
     payload = (await request.json()) as SubmitPayload
@@ -86,6 +83,8 @@ export async function POST(request: Request): Promise<Response> {
     // Brute-force guard on the course code — counted per IP and only on
     // WRONG codes, so students who know the code are never throttled
     // (important: a whole class may share one campus/VPN IP).
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
     if (await rateLimited('badcode-ip', ip, 10, 3600)) {
       return error(
         'Zu viele Fehlversuche mit dem Kurscode. Bitte versuche es später erneut.',
@@ -95,18 +94,21 @@ export async function POST(request: Request): Promise<Response> {
     return error('Der Kurscode stimmt nicht.', 403)
   }
 
-  // Throttle confirmation mails per recipient (identity-based, not IP):
-  // prevents using the form to bombard an inbox and caps how many new
-  // requests one student starts per day. Does not limit total over the
-  // semester — active participation is explicitly wanted.
-  if (await rateLimited('confirm-mail', email, confirmMailsPerDay(), 86_400)) {
+  // Both KV checks in parallel — one round-trip of latency instead of two.
+  // Mail throttle is identity-based (not IP): prevents bombarding an inbox
+  // and caps how many new requests one student starts per day. Does not
+  // limit the semester total — active participation is explicitly wanted.
+  const [mailLimited, openCount] = await Promise.all([
+    rateLimited('confirm-mail', email, confirmMailsPerDay(), 86_400),
+    kv.scard(openSetKey(email)),
+  ])
+  if (mailLimited) {
     return error(
       'An diese Adresse wurden heute schon viele Bestätigungsmails geschickt. Bitte versuche es morgen erneut.',
       429,
     )
   }
 
-  const openCount = await kv.scard(openSetKey(email))
   if (openCount >= maxOpenPerStudent()) {
     return error(
       `Du hast gerade ${openCount} offene Anfragen. Sobald eine umgesetzt oder abgeschlossen ist, kannst du wieder einreichen.`,

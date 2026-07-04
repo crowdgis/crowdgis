@@ -22,6 +22,15 @@ function initialFromUrl(): Pick<
   'open' | 'view' | 'confirmedNumber'
 > {
   const params = new URLSearchParams(window.location.search)
+  const stripParam = (name: string) => {
+    params.delete(name)
+    const rest = params.toString()
+    window.history.replaceState(
+      {},
+      '',
+      window.location.pathname + (rest ? `?${rest}` : ''),
+    )
+  }
 
   const requestNumber = Number(params.get('request'))
   const confirmed = Number(params.get('bestaetigt'))
@@ -30,17 +39,11 @@ function initialFromUrl(): Pick<
   // Mail links carry a per-issue answer key; keep it out of the URL/history
   // and remember it locally so the submitter can answer in the app.
   const answerKey = params.get('key')
-  if (answerKey && Number.isInteger(issueFromUrl) && issueFromUrl > 0) {
-    saveAnswerKey(issueFromUrl, answerKey)
-  }
-  if (params.has('key')) {
-    params.delete('key')
-    const rest = params.toString()
-    window.history.replaceState(
-      {},
-      '',
-      window.location.pathname + (rest ? `?${rest}` : ''),
-    )
+  if (answerKey !== null) {
+    if (answerKey && Number.isInteger(issueFromUrl) && issueFromUrl > 0) {
+      saveAnswerKey(issueFromUrl, answerKey)
+    }
+    stripParam('key')
   }
 
   if (Number.isInteger(requestNumber) && requestNumber > 0) {
@@ -53,13 +56,7 @@ function initialFromUrl(): Pick<
 
   if (params.has('bestaetigt')) {
     // One-time event: drop the param so a manual refresh starts clean.
-    params.delete('bestaetigt')
-    const rest = params.toString()
-    window.history.replaceState(
-      {},
-      '',
-      window.location.pathname + (rest ? `?${rest}` : ''),
-    )
+    stripParam('bestaetigt')
     return {
       open: true,
       view: { kind: 'board' },

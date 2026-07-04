@@ -7,9 +7,7 @@
  * explains who sends this and why the recipient got it.
  */
 
-const INK = '#2b336a'
-const SIGNAL = '#870010'
-const STONE = '#7c7c6b'
+import { escapeHtml, INK, SIGNAL, STONE } from './html.js'
 
 export interface EmailButton {
   label: string
@@ -25,14 +23,6 @@ export interface EmailContent {
   button?: EmailButton
   /** Footer line telling the recipient why they received this mail. */
   reason: string
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }
 
 const FOOTER_LINE =

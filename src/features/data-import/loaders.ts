@@ -1,6 +1,7 @@
 import type { Feature, FeatureCollection } from 'geojson'
 import type { ImportedLayer } from '../../state/layerStore'
 import {
+  arcToleranceForEpsg,
   isSupportedRasterProjection,
   isSupportedVectorProjection,
   rasterBounds,
@@ -61,11 +62,6 @@ async function loadGeoPackage(file: File): Promise<ImportedLayer[]> {
   } finally {
     geopackage.close()
   }
-}
-
-/** Arc flattening tolerance in CRS units (meters vs. degrees). */
-function arcToleranceForEpsg(epsg: number): number {
-  return epsg === 4326 ? 5e-7 : 0.05
 }
 
 /**
