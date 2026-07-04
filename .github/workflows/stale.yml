@@ -5,6 +5,11 @@ on:
   schedule:
     - cron: '17 5 * * *' # daily 05:17 UTC
   workflow_dispatch:
+    inputs:
+      cutoff_days:
+        description: 'Discard rueckfrage issues untouched for this many days (0 = all, for testing)'
+        default: '7'
+        required: false
 
 permissions:
   issues: write
@@ -17,7 +22,8 @@ jobs:
     steps:
       - name: Close stale rueckfrage issues
         run: |
-          CUTOFF=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          DAYS='${{ inputs.cutoff_days || 7 }}'
+          CUTOFF=$(date -u -d "$DAYS days ago" +%Y-%m-%dT%H:%M:%SZ)
           gh issue list --repo "$GITHUB_REPOSITORY" \
             --label "rueckfrage" --state open \
             --json number,updatedAt \
