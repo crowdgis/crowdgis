@@ -64,14 +64,18 @@ jobs:
 
             1. Understand what the reviewer wants fixed. Read the relevant
                feature files (grep the codebase).
-            2. Make the change IN PLACE inside the affected feature's folder.
+            2. If the branch has merge conflicts with main, resolve them
+               first: `git fetch origin` and `git merge origin/main`,
+               keeping BOTH sides where they are independent (e.g. in
+               src/features/registry.ts both feature entries survive).
+            3. Make the change IN PLACE inside the affected feature's folder.
                Prefer a general fix over a narrow patch (e.g. fix the shared
                cause, not just one symptom). Do not touch unrelated features.
-            3. Run `npm run lint`, `npm run typecheck`, `npm test`,
+            4. Run `npm run lint`, `npm run typecheck`, `npm test`,
                `npm run build`, and — if it is a visual change —
                `npm run test:e2e`. All must pass; fix until they do.
-            4. Commit with a descriptive English message and push the branch.
+            5. Commit with a descriptive English message and push the branch.
           claude_args: |
             --model sonnet
             --max-turns 60
-            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh pr view:*),Bash(gh issue view:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm run test:e2e),Bash(npm ci),Bash(npm install:*)"
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(gh pr view:*),Bash(gh issue view:*),Bash(git checkout:*),Bash(git fetch:*),Bash(git merge:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm run test:e2e),Bash(npm ci),Bash(npm install:*)"
