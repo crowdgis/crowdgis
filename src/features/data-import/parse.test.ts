@@ -12,6 +12,7 @@ describe('detectImportKind', () => {
     expect(detectImportKind('swiss.gpkg')).toBe('gpkg')
     expect(detectImportKind('dem.tif')).toBe('geotiff')
     expect(detectImportKind('ortho.TIFF')).toBe('geotiff')
+    expect(detectImportKind('parcels.zip')).toBe('shapefile')
   })
 
   it('returns null for unsupported files', () => {
