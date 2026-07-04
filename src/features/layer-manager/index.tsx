@@ -57,7 +57,6 @@ function LayerListPanel() {
 
   return (
     <section>
-      <h2 className="label-micro mb-2">Ebenen</h2>
       {layers.length === 0 ? (
         <p className="text-xs text-stone">
           Noch keine Ebenen geladen. Lade oben eine Datei, um zu starten.

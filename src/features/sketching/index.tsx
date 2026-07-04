@@ -86,7 +86,6 @@ function SketchPanel() {
 
   return (
     <section>
-      <h2 className="label-micro mb-2">Skizzen</h2>
       {features.length === 0 ? (
         <p className="text-xs text-stone">
           Zeichne mit den Werkzeugen links oben auf der Karte.

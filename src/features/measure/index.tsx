@@ -31,7 +31,6 @@ function MeasurePanel() {
 
   return (
     <section>
-      <h2 className="label-micro mb-2">Messungen</h2>
       {measurable.length === 0 ? (
         <p className="text-xs text-stone">
           Zeichne eine Linie oder Fläche, um Distanz und Fläche zu messen.

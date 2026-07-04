@@ -24,6 +24,10 @@ src/features/<kebab-case-id>/
 
 - Features plug into the UI ONLY via the `FeatureModule` slots
   (`MapSlot`, `ToolbarItem`, `StatusBarItem`, `SidebarPanel`, `BottomPanel`).
+- `SidebarPanel` renders CONTENT ONLY. The core wraps it in a collapsible
+  frame titled with your `label` (and shows it in the compact icon rail —
+  optionally set `icon`, a single character/emoji). Never render your own
+  panel heading or collapse/toggle logic.
 - Features never import from other features. Cross-feature communication
   goes through the shared stores in `src/state/`.
 - To activate a feature, add exactly one import + array entry in
