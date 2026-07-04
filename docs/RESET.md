@@ -32,6 +32,14 @@ Baseline-Features (dürfen bleiben):
 `data-import`, `layer-manager`, `sketching`, `measure`, `attribute-table`,
 `basemaps`, `coordinates`, `feature-requests`.
 
+> ⚠️ **Grenze von Variante B:** Der Agent integriert manche Wünsche in
+> BESTEHENDE Baseline-Module statt einen eigenen Ordner anzulegen
+> (Beispiel: Shapefile-Import wurde Teil von `data-import`). Solche
+> Erweiterungen entfernt nur **Variante A** zuverlässig. Im Zweifel:
+> `git diff baseline main -- src/ package.json` zeigt alles, was seit
+> der Baseline dazukam. Variante A ist der Normalfall für den
+> Semester-Reset; Variante B nur für punktuelles Aufräumen.
+
 Danach `npm run lint && npm run typecheck && npm test && npm run build` — muss grün sein.
 
 ## 2. Daten zurücksetzen (leeres Board)
