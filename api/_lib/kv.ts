@@ -38,6 +38,13 @@ export const upvoterKey = (issueNumber: number, voter: string) =>
   `upvoted:${issueNumber}:${voter}`
 /** Per-issue secret; required to answer clarifications (reply endpoint). */
 export const answerKeyKey = (issueNumber: number) => `answerkey:${issueNumber}`
+/**
+ * Once-per-issue marker for lifecycle mails. Pipeline retries re-add
+ * status labels (e.g. in-arbeit again after a repair cycle) — students
+ * must get each status mail only once.
+ */
+export const notifiedKey = (issueNumber: number, label: string) =>
+  `notified:${issueNumber}:${label}`
 /** Rate-limit counters (INCR + EXPIRE). */
 const rateKey = (scope: string, id: string) => `rl:${scope}:${id}`
 
