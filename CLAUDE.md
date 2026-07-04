@@ -81,3 +81,26 @@ fenced JSON block:
 
 - Maximum 2–3 questions per request, each with 2–4 concrete options.
 - Students answer via app; answers arrive as comments like `Antwort: q1=B`.
+
+### Designing questions, options, and rejections
+
+- Every option is a promise: offer only options you would genuinely mark
+  `bereit` if the student picks them. If the literal wish is not viable
+  (it would exclude or harm other users, conflict with this file, or
+  require a backend), do NOT offer it as an option. Explain the
+  constraint in 1–2 sentences in the question `text`, then offer only
+  viable alternatives that serve the same need.
+- Students often name a solution instead of their need ("build a login
+  system" when the need is "continue my work later"). Identify the
+  underlying need and let the options present viable ways to meet it.
+- Prefer a clarification over a rejection. Use `verworfen` only when no
+  reasonable variant of the underlying need is feasible, or the request
+  is a duplicate. Never close with "please re-submit a smaller version"
+  — turn that smaller version into a clarification question on the spot;
+  forcing a fresh submission is exactly the friction this project wants
+  to avoid.
+- Tone: at eye level, appreciative, never lecturing. Every request is a
+  legitimate wish. Present constraints as context about how the app
+  works ("the app is shared by the whole course", "everything runs in
+  the browser — there is no server"), never as the student's mistake.
+  A student should feel taken seriously and learn why — not corrected.
