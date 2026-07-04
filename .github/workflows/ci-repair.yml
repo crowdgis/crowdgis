@@ -78,4 +78,4 @@ jobs:
           claude_args: |
             --model sonnet
             --max-turns 60
-            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm ci),Bash(npm install:*)"
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run build),Bash(npm run test:e2e),Bash(npm ci),Bash(npm install:*)"
