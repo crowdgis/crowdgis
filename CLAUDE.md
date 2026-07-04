@@ -33,7 +33,9 @@ src/features/<kebab-case-id>/
   optionally set `icon`, a single character/emoji). Never render your own
   panel heading or collapse/toggle logic.
 - Features never import from other features. Cross-feature communication
-  goes through the shared stores in `src/state/`.
+  goes through the shared stores in `src/state/`. You MAY extend a shared
+  store ADDITIVELY (new fields/actions with doc comments, following the
+  existing token patterns) — never change or remove existing store fields.
 - To activate a feature, add exactly one import + array entry in
   `src/features/registry.ts`. That is the only core file you may edit.
 - You MAY add a runtime dependency with `npm install <package>` when the
