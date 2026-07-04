@@ -14,6 +14,12 @@ export interface FeatureModule {
   /** Human-readable German label, shown in the UI. */
   label: string
   /**
+   * Optional single character or emoji for the compact sidebar icon
+   * rail. When omitted, the first letter of `label` is shown as a
+   * monogram — setting this is never required.
+   */
+  icon?: string
+  /**
    * Rendered inside the Leaflet map context (react-leaflet children).
    * Use for layers, controls and map event handlers.
    */
@@ -29,8 +35,9 @@ export interface FeatureModule {
    */
   StatusBarItem?: ComponentType
   /**
-   * Rendered as a section in the left sidebar.
-   * Use for persistent panels (layer list, data import, …).
+   * Rendered as a collapsible section in the left sidebar. The core
+   * draws the frame: a header with `label` and open/close handling.
+   * Render CONTENT ONLY — no own heading, no own collapse logic.
    */
   SidebarPanel?: ComponentType
   /**

@@ -60,7 +60,6 @@ function BufferPanel() {
 
   return (
     <section>
-      <h2 className="label-micro mb-2">Puffer</h2>
       {vectorLayers.length === 0 ? (
         <p className="text-xs text-stone">
           Lade zuerst eine Vektorebene, um einen Puffer zu erzeugen.

@@ -1,5 +1,6 @@
 import { features } from './features/registry'
 import { MapView } from './map/MapView'
+import { SidebarPanels } from './panels/SidebarPanels'
 
 function App() {
   return (
@@ -26,11 +27,7 @@ function App() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-72 shrink-0 flex-col gap-5 overflow-y-auto border-r border-hairline bg-sheet p-3">
-          {features.map((f) =>
-            f.SidebarPanel ? <f.SidebarPanel key={f.id} /> : null,
-          )}
-        </aside>
+        <SidebarPanels />
 
         <main className="relative min-w-0 flex-1">
           <MapView />
