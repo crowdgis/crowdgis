@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { appBaseUrl } from './_lib/env.js'
 import { createIssue } from './_lib/github.js'
+import { escapeHtml, HAIRLINE, INK, PAPER, SIGNAL } from './_lib/html.js'
 import { error } from './_lib/http.js'
 import {
   answerKeyKey,
@@ -25,10 +26,10 @@ function page(title: string, bodyHtml: string, status = 200): Response {
   const html = `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} – CrowdGIS</title></head>
-<body style="margin:0;background:#f6f6f3;font-family:Arial,Helvetica,sans-serif;">
-  <div style="max-width:520px;margin:10vh auto;background:#fff;border:1px solid #d9d9d2;border-radius:6px;padding:28px;">
-    <div style="font-size:20px;font-weight:700;color:#2b336a;">CrowdGIS</div>
-    <div style="height:3px;width:28px;background:#870010;margin-top:6px;"></div>
+<body style="margin:0;background:${PAPER};font-family:Arial,Helvetica,sans-serif;">
+  <div style="max-width:520px;margin:10vh auto;background:#fff;border:1px solid ${HAIRLINE};border-radius:6px;padding:28px;">
+    <div style="font-size:20px;font-weight:700;color:${INK};">CrowdGIS</div>
+    <div style="height:3px;width:28px;background:${SIGNAL};margin-top:6px;"></div>
     <div style="margin-top:18px;color:#111;font-size:15px;line-height:1.55;">${bodyHtml}</div>
   </div>
 </body></html>`
@@ -51,7 +52,7 @@ export async function GET(request: Request): Promise<Response> {
       'Link abgelaufen',
       `<strong>Dieser Bestätigungslink ist abgelaufen oder wurde bereits verwendet.</strong>
        <p>Falls du deinen Wunsch schon bestätigt hast, findest du ihn auf dem
-       <a href="${appBaseUrl()}" style="color:#2b336a;">Feature-Board</a>.
+       <a href="${appBaseUrl()}" style="color:${INK};">Feature-Board</a>.
        Andernfalls kannst du ihn einfach neu einreichen.</p>`,
       410,
     )
@@ -62,7 +63,7 @@ export async function GET(request: Request): Promise<Response> {
     `<strong>Fast geschafft, ${escapeHtml(pending.pseudonym)}!</strong>
      <p>Bestätige jetzt deinen Feature-Wunsch<br>„${escapeHtml(pending.title)}“.</p>
      <form method="POST" action="/api/confirm?token=${encodeURIComponent(token)}">
-       <button type="submit" style="background:#2b336a;color:#fff;border:0;border-radius:4px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;">
+       <button type="submit" style="background:${INK};color:#fff;border:0;border-radius:4px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;">
          Feature-Wunsch bestätigen
        </button>
      </form>`,
@@ -108,12 +109,4 @@ export async function POST(request: Request): Promise<Response> {
     `${appBaseUrl()}/?bestaetigt=${issueNumber}&key=${answerKey}`,
     303,
   )
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }

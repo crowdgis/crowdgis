@@ -89,14 +89,16 @@ function readGeometry(dv: DataView, cur: Cursor, tol: number): Geometry {
         coordinates: points.map((g) => (g as { coordinates: Position }).coordinates),
       }
     }
-    case 5: { // MultiLineString
+    case 5: // MultiLineString
+    case 11: { // MultiCurve — sub-curves already arrive as LineStrings
       const lines = readSubGeometries(dv, cur, little, tol, 'LineString')
       return {
         type: 'MultiLineString',
         coordinates: lines.map((g) => (g as { coordinates: Position[] }).coordinates),
       }
     }
-    case 6: { // MultiPolygon
+    case 6: // MultiPolygon
+    case 12: { // MultiSurface — sub-surfaces already arrive as Polygons
       const polys = readSubGeometries(dv, cur, little, tol, 'Polygon')
       return {
         type: 'MultiPolygon',
@@ -137,20 +139,6 @@ function readGeometry(dv: DataView, cur: Cursor, tol: number): Geometry {
         rings.push(closeRing(readCurveAsLine(dv, cur, tol)))
       }
       return { type: 'Polygon', coordinates: rings }
-    }
-    case 11: { // MultiCurve → MultiLineString
-      const curves = readSubGeometries(dv, cur, little, tol, 'LineString')
-      return {
-        type: 'MultiLineString',
-        coordinates: curves.map((g) => (g as { coordinates: Position[] }).coordinates),
-      }
-    }
-    case 12: { // MultiSurface → MultiPolygon
-      const surfaces = readSubGeometries(dv, cur, little, tol, 'Polygon')
-      return {
-        type: 'MultiPolygon',
-        coordinates: surfaces.map((g) => (g as { coordinates: Position[][] }).coordinates),
-      }
     }
     default:
       throw new Error(`WKB-Geometrietyp ${base} wird nicht unterstützt.`)

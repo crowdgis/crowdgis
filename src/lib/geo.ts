@@ -31,13 +31,43 @@ export function isSupportedVectorProjection(epsg: number): boolean {
   return SUPPORTED_VECTOR_EPSG.has(epsg)
 }
 
-function reprojectCoords(from: string, coords: unknown): unknown {
-  if (typeof (coords as number[])[0] === 'number') {
-    const [x, y, ...rest] = coords as Position
-    const [lng, lat] = proj4(from, 'EPSG:4326', [x, y])
-    return rest.length > 0 ? [lng, lat, ...rest] : [lng, lat]
+/**
+ * Arc flattening tolerance in the CRS's units. Lives next to the
+ * supported-EPSG knowledge on purpose: of the supported codes only 4326
+ * is degree-based, everything else is metric — if another geographic CRS
+ * is ever added above, this mapping must grow with it.
+ */
+export function arcToleranceForEpsg(epsg: number): number {
+  return epsg === 4326 ? 5e-7 : 0.05
+}
+
+interface Wgs84Converter {
+  forward: (pos: [number, number]) => [number, number]
+}
+
+/**
+ * Converter construction is expensive in proj4 (defs lookup, datum setup)
+ * — never build it per coordinate. Cached per source EPSG.
+ */
+const wgs84Converters = new Map<number, Wgs84Converter>()
+
+function converterToWgs84(epsg: number): Wgs84Converter {
+  let conv = wgs84Converters.get(epsg)
+  if (!conv) {
+    conv = proj4(`EPSG:${epsg}`, 'EPSG:4326') as Wgs84Converter
+    wgs84Converters.set(epsg, conv)
   }
-  return (coords as unknown[]).map((c) => reprojectCoords(from, c))
+  return conv
+}
+
+function reprojectCoords(conv: Wgs84Converter, coords: unknown): unknown {
+  const arr = coords as unknown[]
+  if (typeof arr[0] === 'number') {
+    const pos = coords as Position
+    const [lng, lat] = conv.forward([pos[0], pos[1]])
+    return pos.length > 2 ? [lng, lat, ...pos.slice(2)] : [lng, lat]
+  }
+  return arr.map((c) => reprojectCoords(conv, c))
 }
 
 /**
@@ -47,7 +77,6 @@ function reprojectCoords(from: string, coords: unknown): unknown {
  */
 export function reprojectGeometryToWgs84(geom: Geometry, epsg: number): Geometry {
   if (epsg === 4326) return geom
-  const from = `EPSG:${epsg}`
   if (geom.type === 'GeometryCollection') {
     return {
       type: 'GeometryCollection',
@@ -56,7 +85,7 @@ export function reprojectGeometryToWgs84(geom: Geometry, epsg: number): Geometry
   }
   return {
     ...geom,
-    coordinates: reprojectCoords(from, geom.coordinates),
+    coordinates: reprojectCoords(converterToWgs84(epsg), geom.coordinates),
   } as Geometry
 }
 
@@ -73,14 +102,14 @@ export function rasterBounds(georaster: GeoRasterData): LayerBounds | null {
     ]
   }
   if (!isSupportedRasterProjection(projection)) return null
-  const from = `EPSG:${projection}`
   const corners: Array<[number, number]> = [
     [xmin, ymin],
     [xmin, ymax],
     [xmax, ymin],
     [xmax, ymax],
   ]
-  const transformed = corners.map(([x, y]) => proj4(from, 'EPSG:4326', [x, y]))
+  const conv = converterToWgs84(projection)
+  const transformed = corners.map((corner) => conv.forward(corner))
   const lngs = transformed.map(([lng]) => lng)
   const lats = transformed.map(([, lat]) => lat)
   return [

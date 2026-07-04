@@ -39,7 +39,7 @@ export const upvoterKey = (issueNumber: number, voter: string) =>
 /** Per-issue secret; required to answer clarifications (reply endpoint). */
 export const answerKeyKey = (issueNumber: number) => `answerkey:${issueNumber}`
 /** Rate-limit counters (INCR + EXPIRE). */
-export const rateKey = (scope: string, id: string) => `rl:${scope}:${id}`
+const rateKey = (scope: string, id: string) => `rl:${scope}:${id}`
 
 export async function storePending(
   token: string,
@@ -74,7 +74,12 @@ export async function rateLimited(
   windowSeconds: number,
 ): Promise<boolean> {
   const key = rateKey(scope, id)
-  const count = await kv.incr(key)
-  if (count === 1) await kv.expire(key, windowSeconds)
+  // Single round-trip; NX sets the TTL only when the window starts, and
+  // never leaves a TTL-less counter behind.
+  const [count] = await kv
+    .pipeline()
+    .incr(key)
+    .expire(key, windowSeconds, 'NX')
+    .exec<[number, 0 | 1]>()
   return count > limit
 }
