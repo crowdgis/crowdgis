@@ -8,6 +8,7 @@ import historicalMaps from './historical-maps'
 import layerManager from './layer-manager'
 import mapOverview from './map-overview'
 import measure from './measure'
+import sentinel2Timetravel from './sentinel2-timetravel'
 import sketching from './sketching'
 import swissimageTimetravel from './swissimage-timetravel'
 
@@ -27,6 +28,7 @@ export const features: FeatureModule[] = [
   attributeTable,
   basemaps,
   swissimageTimetravel,
+  sentinel2Timetravel,
   historicalMaps,
   mapOverview,
   coordinates,
