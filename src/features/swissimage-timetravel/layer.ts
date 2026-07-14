@@ -1,6 +1,9 @@
 import TileLayer from 'ol/layer/Tile'
 import WMTS from 'ol/source/WMTS'
 import WMTSTileGrid from 'ol/tilegrid/WMTS'
+import { getRenderPixel } from 'ol/render'
+import type RenderEvent from 'ol/render/Event'
+import type Map from 'ol/Map'
 
 /** swisstopo's time-enabled national aerial image mosaic. */
 export const SWISSIMAGE_TIMETRAVEL_LAYER_ID = 'ch.swisstopo.swissimage-product'
@@ -37,4 +40,45 @@ export function makeSwissimageLayer(time: string): TileLayer {
       crossOrigin: 'anonymous',
     }),
   })
+}
+
+/**
+ * Clips `layer`'s rendering to the part of the map viewport right of
+ * `getFraction()` (0 = left edge, 1 = right edge), so the layer(s) below
+ * show through on the left — used to swipe-compare two time-travel years.
+ * Returns a function that removes the clip listeners again.
+ */
+export function clipLayerToSwipe(
+  layer: TileLayer,
+  map: Map,
+  getFraction: () => number,
+): () => void {
+  function prerender(event: RenderEvent) {
+    const ctx = event.context as CanvasRenderingContext2D
+    const size = map.getSize()
+    if (!size) return
+    const width = size[0] * getFraction()
+    const topLeft = getRenderPixel(event, [width, 0])
+    const topRight = getRenderPixel(event, [size[0], 0])
+    const bottomLeft = getRenderPixel(event, [width, size[1]])
+    const bottomRight = getRenderPixel(event, size)
+
+    ctx.save()
+    ctx.beginPath()
+    ctx.moveTo(topLeft[0], topLeft[1])
+    ctx.lineTo(bottomLeft[0], bottomLeft[1])
+    ctx.lineTo(bottomRight[0], bottomRight[1])
+    ctx.lineTo(topRight[0], topRight[1])
+    ctx.closePath()
+    ctx.clip()
+  }
+  function postrender(event: RenderEvent) {
+    ;(event.context as CanvasRenderingContext2D).restore()
+  }
+  layer.on('prerender', prerender)
+  layer.on('postrender', postrender)
+  return () => {
+    layer.un('prerender', prerender)
+    layer.un('postrender', postrender)
+  }
 }
