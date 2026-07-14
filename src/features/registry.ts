@@ -8,6 +8,7 @@ import layerManager from './layer-manager'
 import mapOverview from './map-overview'
 import measure from './measure'
 import sketching from './sketching'
+import swissimageTimetravel from './swissimage-timetravel'
 
 /**
  * Central feature registry.
@@ -24,6 +25,7 @@ export const features: FeatureModule[] = [
   measure,
   attributeTable,
   basemaps,
+  swissimageTimetravel,
   mapOverview,
   coordinates,
   featureRequests,
