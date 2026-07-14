@@ -4,6 +4,7 @@ import basemaps from './basemaps'
 import coordinates from './coordinates'
 import dataImport from './data-import'
 import featureRequests from './feature-requests'
+import historicalMaps from './historical-maps'
 import layerManager from './layer-manager'
 import mapOverview from './map-overview'
 import measure from './measure'
@@ -26,6 +27,7 @@ export const features: FeatureModule[] = [
   attributeTable,
   basemaps,
   swissimageTimetravel,
+  historicalMaps,
   mapOverview,
   coordinates,
   featureRequests,
