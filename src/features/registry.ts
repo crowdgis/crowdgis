@@ -4,6 +4,7 @@ import basemaps from './basemaps'
 import coordinates from './coordinates'
 import dataImport from './data-import'
 import featureRequests from './feature-requests'
+import gwrBuildings from './gwr-buildings'
 import historicalMaps from './historical-maps'
 import layerManager from './layer-manager'
 import mapOverview from './map-overview'
@@ -26,6 +27,7 @@ export const features: FeatureModule[] = [
   sketching,
   measure,
   attributeTable,
+  gwrBuildings,
   basemaps,
   swissimageTimetravel,
   sentinel2Timetravel,
